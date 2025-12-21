@@ -47,7 +47,7 @@ SAKE STORYは、日本酒の基本情報だけでなく、そのお酒が生ま�
 
 | 銘柄詳細 | ログイン | 新規登録 | 一覧 |
 | :---: | :---: | :---: | :---: |
-| ![一覧](docs/images/image-2.png) | ![銘柄詳細](docs/images/image-3.png) | ![ログイン](docs/images/image-4.png) | ![新規登録](docs/images/image-5.png) |
+| ![銘柄詳細 ](docs/images/image-3.png) | ![ログイン](docs/images/image-4.png) | ![新規登録 ](docs/images/image-5.png) | ![一覧](docs/images/image-2.png) |
 
 ## 機能一覧 
 ### 実装済み機能
