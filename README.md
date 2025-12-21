@@ -32,7 +32,7 @@ SAKE STORYは、日本酒の基本情報だけでなく、そのお酒が生ま�
 5. **体験の共有**: 飲んだ感想をレビューとして投稿し、他のユーザーへ共有。
 
 ## デモ
-* **アプリURL:** [https://あなたのデモURL.vercel.app](https://あなたのデモURL.vercel.app)
+* **アプリURL:** [https://あなたのデモURL.vercel.app](https://sake-story.vercel.app/)
 
 ### 動作確認用アカウント
 ログイン機能確認用のアカウントです。
@@ -40,12 +40,10 @@ SAKE STORYは、日本酒の基本情報だけでなく、そのお酒が生ま�
 | **Password** | 20251222 |
 
 ## 📸 スクリーンショット (Screen Shots)
-| 年齢確認|トップページ | 商品一覧 |商品詳細（ストーリー） |
-| :---: | :---: |:---:|
+
 | ![Top](![alt text](docs/images/image-6.png)) | ![Top](![alt text](docs/images/image-1.png)) |![list]([![alt text](docs/images/image-2.png)]) | ![Detail](![alt text](docs/images/image-3.png)) | 
 
-| ログイン | サインアップ | マイページ|
-| :---: | :---: |
+
 | ![login]([![alt text](docs/images/image-4.png)]) | ![signup](![alt text](docs/images/image-5.png)) | ![mypage](![alt text](docs/images/image-7.png))) | 
 ## 機能一覧 
 ### 実装済み機能
