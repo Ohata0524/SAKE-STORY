@@ -39,15 +39,15 @@ SAKE STORYは、日本酒の基本情報だけでなく、そのお酒が生ま�
 | **Email** | test2@example.com|
 | **Password** | 20251222 |
 
-## スクリーンショット
+## 📸 スクリーンショット
 
-(![alt text](docs/images/image-6.png)) | 
-(![alt text](docs/images/image-1.png)) |
-(![alt text](docs/images/image-2.png)) | 
-(![Detail](![alt text](docs/images/image-3.png)) | 
-([![alt text](docs/images/image-4.png)) | 
-(![alt text](docs/images/image-5.png)) |
-(![alt text](docs/images/image-7.png))) | 
+| トップページ | 銘柄一覧 | 銘柄詳細 |
+| :---: | :---: | :---: |
+| ![トップ](docs/images/image-6.png) | ![一覧](docs/images/image-1.png) | ![詳細](docs/images/image-2.png) |
+
+| ログイン | 新規登録 | マイページ |
+| :---: | :---: | :---: |
+| ![ログイン](docs/images/image-3.png) | ![登録](docs/images/image-4.png) | ![マイページ](docs/images/image-5.png) |
 
 ## 機能一覧 
 ### 実装済み機能
