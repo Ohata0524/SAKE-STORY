@@ -59,6 +59,7 @@ interface Review {
   comment: string;
   created_at: string;
   user_id: string;
+  user_name?: string;
 }
 
 // 物語セクション
@@ -154,7 +155,7 @@ const Pairing = ({ pairings }: { pairings: Product['pairings'] }) => {
 // レビュー機能 
 const ReviewSection = ({ sakeId }: { sakeId: number }) => {
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [user, setUser] = useState<{ id: string } | null>(null);
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -191,9 +192,13 @@ const ReviewSection = ({ sakeId }: { sakeId: number }) => {
 
     setIsSubmitting(true);
 
+    //ユーザー名（メールの@前）を自動取得
+    const userName = user.email ? user.email.split('@')[0] : '名無し';
+
     const { error } = await supabase.from('reviews').insert({
       sake_id: sakeId,
       user_id: user.id,
+      user_name: userName, //自動取得した名前を保存
       rating: rating,
       comment: comment
     });
@@ -237,7 +242,10 @@ const ReviewSection = ({ sakeId }: { sakeId: number }) => {
                   <User className="w-6 h-6 text-gray-500" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-gray-700">日本酒好きさん</p>
+                  
+                  <p className="text-sm font-bold text-gray-700">
+                    {review.user_name || '日本酒好きさん'}
+                  </p>
                   <div className="flex text-yellow-500 mt-1">
                     {[...Array(5)].map((_, i) => (
                       <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'fill-current' : 'text-gray-300'}`} />
@@ -255,6 +263,8 @@ const ReviewSection = ({ sakeId }: { sakeId: number }) => {
         {user ? (
           <div className="bg-white p-8 rounded-[2rem] border border-gray-200 shadow-md">
             <p className="font-bold text-lg mb-4">レビューを書く</p>
+            
+
             <div className="flex gap-3 mb-6">
               {[1, 2, 3, 4, 5].map((num) => (
                 <button key={num} onClick={() => setRating(num)} type="button" className="hover:scale-110 transition-transform">
