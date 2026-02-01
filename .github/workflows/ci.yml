@@ -1,0 +1,38 @@
+name: CI (Build and Lint)
+
+# 実行されるタイミングの設定
+on:
+  pull_request:
+    branches: [ "main" ] # mainブランチに向けたPRが作られた時に実行
+
+jobs:
+  build-and-lint:
+    runs-on: ubuntu-latest # クラウド上のLinux環境で実行
+
+    steps:
+      # 1. コードの取得
+      - uses: actions/checkout@v4
+
+      # 2. Node.jsのセットアップ
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20" # 使用しているNodeのバージョンに合わせてください
+          cache: "npm"      # npmのキャッシュを有効にして高速化
+
+      # 3. ライブラリのインストール
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Lint（書き方）のチェック
+      - name: Run Lint
+        run: npm run lint
+
+      # 5. Build（ビルド）のチェック
+      - name: Run Build
+        run: npm run build
+        env:
+          # Build時に環境変数が必要な場合はここでダミー値を渡す
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+

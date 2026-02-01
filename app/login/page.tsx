@@ -1,24 +1,30 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../lib/supabaseClient';
 import Link from 'next/link';
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { loginSchema, type LoginInput } from './../../src/lib/zod/schemas'; // パスは適宜調整してください
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isLoading },
+  } = useForm<LoginInput>({
+    resolver: zodResolver(loginSchema),
+    mode: "onBlur",
+  });
 
+  const onSubmit = async (data: LoginInput) => {
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password,
+        email: data.email,
+        password: data.password,
       });
 
       if (error) throw error;
@@ -33,45 +39,35 @@ export default function LoginPage() {
         message = error.message;
       }
       alert('ログインに失敗しました: ' + message);
-    } finally {
-      setIsLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      
-      {/* メインカードコンテナ */}
       <div className="sm:mx-auto sm:w-full sm:max-w-lg">
         <div className="bg-white py-10 px-6 shadow-xl sm:rounded-2xl sm:px-12 border border-gray-100">
           
-          {/* ヘッダータイトル */}
           <div className="text-center mb-10">
             <h1 className="text-3xl font-bold tracking-wider text-indigo-950 font-serif">SAKE STORY</h1>
             <h2 className="mt-4 text-xl font-bold text-gray-900">おかえりなさい</h2>
           </div>
 
-          {/* ログインフォーム */}
-          <form className="space-y-6" onSubmit={handleLogin}>
+          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
             
             {/* メールアドレス */}
             <div>
               <label htmlFor="email" className="block text-sm font-bold text-gray-700 mb-2">
                 メールアドレス
               </label>
-              <div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="example@email.com"
-                  className="appearance-none block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-base"
-                />
-              </div>
+              <input
+                {...register("email")}
+                type="email"
+                placeholder="example@email.com"
+                className={`appearance-none block w-full px-4 py-3 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-base`}
+              />
+              {errors.email && (
+                <p className="mt-2 text-sm text-red-600 font-bold">{errors.email.message}</p>
+              )}
             </div>
 
             {/* パスワード */}
@@ -79,19 +75,15 @@ export default function LoginPage() {
               <label htmlFor="password" className="block text-sm font-bold text-gray-700 mb-2">
                 パスワード
               </label>
-              <div>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="appearance-none block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-base"
-                />
-              </div>
+              <input
+                {...register("password")}
+                type="password"
+                placeholder="••••••••"
+                className={`appearance-none block w-full px-4 py-3 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-base`}
+              />
+              {errors.password && (
+                <p className="mt-2 text-sm text-red-600 font-bold">{errors.password.message}</p>
+              )}
             </div>
 
             {/* ログインボタン */}
@@ -107,7 +99,6 @@ export default function LoginPage() {
             </div>
           </form>
 
-          {/* 新規登録導線 */}
           <div className="mt-8 text-center">
             <p className="text-sm text-gray-600">
               アカウントをお持ちでない方は{' '}

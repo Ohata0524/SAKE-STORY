@@ -1,33 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+/* eslint-disable @next/next/no-img-element */
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '../lib/supabaseClient';
-import { Settings, User, ChevronRight, Star, LogOut, Heart, Trash2, Edit, X, ArrowLeft } from 'lucide-react';
+import { User, Star, LogOut, Heart, Trash2, Edit, X, ArrowLeft } from 'lucide-react';
+import { myReviewListSchema, myFavoriteListSchema } from '../../src/lib/zod/schemas';
 
-// 型定義 
-type ReviewWithSake = {
-  id: number;
-  rating: number;
-  comment: string;
-  created_at: string;
-  sakes: {
-    id: number;
-    name: string;
-    image_url: string | null;
-  } | null;
-};
-
-type FavoriteWithSake = {
-  id: number;
-  created_at: string;
-  sakes: {
-    id: number;
-    name: string;
-    image_url: string | null;
-  } | null;
-};
+// 型定義：Zodから推論
+import { z } from "zod";
+import { myReviewSchema, myFavoriteSchema } from '../../src/lib/zod/schemas';
+type ReviewWithSake = z.infer<typeof myReviewSchema>;
+type FavoriteWithSake = z.infer<typeof myFavoriteSchema>;
 
 export default function MyPage() {
   const router = useRouter();
@@ -38,50 +23,74 @@ export default function MyPage() {
   const [favorites, setFavorites] = useState<FavoriteWithSake[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 編集モード用の状態管理
   const [editingReview, setEditingReview] = useState<ReviewWithSake | null>(null);
   const [editRating, setEditRating] = useState(0);
   const [editComment, setEditComment] = useState('');
 
-  // データ取得関数
-  const fetchData = async (userId: string) => {
+  // データ取得関数を useCallback で安定化
+  const fetchData = useCallback(async (userId: string, ignore: boolean) => {
     // レビュー取得
     const { data: reviewData, error: reviewError } = await supabase
       .from('reviews')
-      .select('*, sakes (id, name, image_url)')
+      .select('id, rating, comment, created_at, sakes (id, name, image_url)')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
-    if (reviewError) console.error('レビュー取得エラー:', reviewError);
-    else setReviews(reviewData as unknown as ReviewWithSake[]);
+    if (!ignore) {
+      if (reviewError) {
+        console.error('レビュー取得エラー:', reviewError);
+      } else if (reviewData) {
+        const result = myReviewListSchema.safeParse(reviewData);
+        if (result.success) setReviews(result.data);
+      }
+    }
 
     // お気に入り取得
     const { data: favData, error: favError } = await supabase
       .from('favorites')
-      .select('*, sakes (id, name, image_url)')
+      .select('id, created_at, sakes (id, name, image_url)')
       .eq('user_id', userId)
       .order('created_at', { ascending: false });
 
-    if (favError) console.error('お気に入り取得エラー:', favError);
-    else setFavorites(favData as unknown as FavoriteWithSake[]);
-    
-    setLoading(false);
-  };
+    if (!ignore) {
+      if (favError) {
+        console.error('お気に入り取得エラー:', favError);
+      } else if (favData) {
+        const result = myFavoriteListSchema.safeParse(favData);
+        if (result.success) setFavorites(result.data);
+      }
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
+    let ignore = false;
+
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
+      
+      if (ignore) return;
+
       if (!user) {
         router.push('/login');
         return;
       }
-      setUserEmail(user.email || 'ゲスト');
-      fetchData(user.id);
-    };
-    init();
-  }, [router]);
 
-  // ログアウト
+      // setState を非同期の枠組みで実行して Cascading Renders を回避
+      setUserEmail(user.email || 'ゲスト');
+      void fetchData(user.id, ignore);
+    };
+
+    const timer = setTimeout(() => {
+      void init();
+    }, 0);
+
+    return () => {
+      ignore = true;
+      clearTimeout(timer);
+    };
+  }, [router, fetchData]);
+
   const handleLogout = async () => {
     if (confirm('ログアウトしますか？')) {
       await supabase.auth.signOut();
@@ -95,31 +104,25 @@ export default function MyPage() {
     return date.toLocaleDateString('ja-JP');
   };
 
-  // 削除機能
   const handleDeleteReview = async (reviewId: number) => {
     if (!confirm('このレビューを削除してもよろしいですか？')) return;
 
-    const { error } = await supabase
-      .from('reviews')
-      .delete()
-      .eq('id', reviewId);
+    const { error } = await supabase.from('reviews').delete().eq('id', reviewId);
 
     if (error) {
       alert('削除に失敗しました: ' + error.message);
     } else {
-      setReviews(reviews.filter(r => r.id !== reviewId));
+      setReviews(prev => prev.filter(r => r.id !== reviewId));
       alert('レビューを削除しました');
     }
   };
 
-  // 編集ボタンを押した時の処理
   const openEditModal = (review: ReviewWithSake) => {
     setEditingReview(review);
     setEditRating(review.rating);
     setEditComment(review.comment);
   };
 
-  // 更新処理
   const handleUpdateReview = async () => {
     if (!editingReview) return;
 
@@ -133,9 +136,9 @@ export default function MyPage() {
     } else {
       alert('レビューを更新しました');
       setEditingReview(null);
-      
+      // 再取得
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) fetchData(user.id);
+      if (user) void fetchData(user.id, false);
     }
   };
 
@@ -145,20 +148,16 @@ export default function MyPage() {
     <div className="min-h-screen bg-gray-50 md:py-6">
       <main className="w-full max-w-5xl bg-white min-h-screen md:min-h-fit md:h-auto shadow-lg relative flex flex-col md:rounded-2xl overflow-hidden mx-auto">
         
-        {/* ヘッダー */}
         <header className="flex items-center justify-between p-5 md:p-6 border-b border-gray-100 bg-white sticky top-0 z-10">
           <Link href="/" className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition group">
             <ArrowLeft className="w-5 h-5 text-gray-800 group-hover:text-indigo-600 transition" />
           </Link>
-          
           <h1 className="font-bold text-xl md:text-2xl text-gray-900 tracking-wide font-serif">マイページ</h1>
-          
           <button onClick={handleLogout} className="p-2 -mr-2 hover:bg-red-50 rounded-full transition text-gray-600 hover:text-red-500" title="ログアウト">
             <LogOut className="w-5 h-5 md:w-6 md:h-6" />
           </button>
         </header>
 
-        {/* プロフィール */}
         <section className="p-6 md:p-10 flex flex-col md:flex-row items-center gap-5 md:gap-8 border-b border-gray-100 bg-white">
           <div className="w-20 h-20 md:w-24 md:h-24 bg-indigo-50 rounded-full flex items-center justify-center border-2 border-indigo-100 shadow-sm flex-shrink-0">
             <User className="w-10 h-10 md:w-12 md:h-12 text-indigo-300" />
@@ -169,7 +168,6 @@ export default function MyPage() {
           </div>
         </section>
 
-        {/* タブ */}
         <div className="flex border-b border-gray-200 bg-white sticky top-[72px] z-10 shadow-sm">
           <button onClick={() => setActiveTab('reviews')} className={`flex-1 py-3 text-base md:text-lg font-bold text-center transition-colors relative ${activeTab === 'reviews' ? 'text-indigo-900' : 'text-gray-400 hover:text-gray-600'}`}>
             レビュー履歴
@@ -181,10 +179,7 @@ export default function MyPage() {
           </button>
         </div>
 
-        {/* コンテンツエリア */}
         <div className="flex-1 bg-gray-50 p-5 md:p-10 min-h-[400px]">
-          
-          {/* レビュー履歴リスト */}
           {activeTab === 'reviews' && (
             <div className="space-y-5 max-w-4xl mx-auto">
               {reviews.length === 0 ? (
@@ -196,21 +191,11 @@ export default function MyPage() {
               ) : (
                 reviews.map((review) => (
                   <div key={review.id} className="block bg-white p-5 md:p-6 rounded-xl border border-gray-200 shadow-sm transition-all duration-300 relative group hover:shadow-md">
-                    
-                    {/* 編集・削除ボタン */}
                     <div className="absolute top-5 right-5 flex gap-2">
-                      <button 
-                        onClick={() => openEditModal(review)} 
-                        className="p-1.5 bg-gray-100 hover:bg-indigo-100 text-gray-500 hover:text-indigo-600 rounded-full transition"
-                        title="編集"
-                      >
+                      <button onClick={() => openEditModal(review)} className="p-1.5 bg-gray-100 hover:bg-indigo-100 text-gray-500 hover:text-indigo-600 rounded-full transition" title="編集">
                         <Edit className="w-4 h-4" />
                       </button>
-                      <button 
-                        onClick={() => handleDeleteReview(review.id)} 
-                        className="p-1.5 bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-500 rounded-full transition"
-                        title="削除"
-                      >
+                      <button onClick={() => handleDeleteReview(review.id)} className="p-1.5 bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-500 rounded-full transition" title="削除">
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
@@ -235,7 +220,6 @@ export default function MyPage() {
             </div>
           )}
 
-          {/* B. お気に入り一覧 */}
           {activeTab === 'favorites' && (
             <div className="space-y-6">
               {favorites.length === 0 ? (
@@ -264,14 +248,11 @@ export default function MyPage() {
           )}
         </div>
 
-        {/* 編集用モーダル */}
         {editingReview && (
           <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl relative animate-in zoom-in-95 duration-200">
+            <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl relative">
               <button onClick={() => setEditingReview(null)} className="absolute top-4 right-4 p-1.5 hover:bg-gray-100 rounded-full text-gray-500"><X className="w-5 h-5" /></button>
-              
               <h2 className="text-xl font-bold mb-6 text-gray-900">レビューを編集</h2>
-              
               <div className="mb-6">
                 <label className="block text-sm font-bold text-gray-700 mb-2">評価</label>
                 <div className="flex gap-2">
@@ -282,7 +263,6 @@ export default function MyPage() {
                   ))}
                 </div>
               </div>
-
               <div className="mb-6">
                 <label className="block text-sm font-bold text-gray-700 mb-2">コメント</label>
                 <textarea 
@@ -292,7 +272,6 @@ export default function MyPage() {
                   placeholder="感想を入力..."
                 />
               </div>
-
               <div className="flex gap-3">
                 <button onClick={() => setEditingReview(null)} className="flex-1 py-3 border border-gray-300 rounded-xl font-bold text-sm text-gray-600 hover:bg-gray-50 transition">キャンセル</button>
                 <button onClick={handleUpdateReview} className="flex-1 py-3 bg-indigo-900 text-white rounded-xl font-bold text-sm hover:bg-indigo-800 shadow-lg transition">更新する</button>
@@ -300,7 +279,6 @@ export default function MyPage() {
             </div>
           </div>
         )}
-
       </main>
     </div>
   );
