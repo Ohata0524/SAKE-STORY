@@ -1,24 +1,18 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+/* eslint-disable @next/next/no-img-element */
+import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '../lib/supabaseClient';
 import { ArrowLeft, Search, SlidersHorizontal, Filter } from 'lucide-react';
+import { sakeListSchema } from '../../src/lib/zod/schemas';
 
-// 日本酒データの型定義
-type Sake = {
-  id: number;
-  name: string;
-  brewery: string;
-  price: number;
-  taste: string;
-  image_url: string | null;
-  description: string;
-  prefecture: string;
-};
+// --- 型定義：Zodから自動生成 ---
+import { z } from "zod";
+import { sakeSchema } from '../../src/lib/zod/schemas';
+type Sake = z.infer<typeof sakeSchema>;
 
-// 都道府県の並び順定義
 const PREF_ORDER = [
   "北海道", "青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県",
   "茨城県", "栃木県", "群馬県", "埼玉県", "千葉県", "東京都", "神奈川県",
@@ -33,27 +27,23 @@ function ListContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   
-  // URLから初期検索条件を取得
   const initialKeyword = searchParams.get('q') || '';
   const initialTaste = searchParams.get('taste') || '';
 
-  // 状態変数（State）の定義
   const [sakes, setSakes] = useState<Sake[]>([]);
   const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState(initialKeyword);
   const [sortOrder, setSortOrder] = useState('newest');
 
-  // 現在のフィルター条件を判定して、プルダウンの初期値を決める関数
-  const getCurrentFilter = () => {
+  const getCurrentFilter = useCallback(() => {
     if (initialTaste === '甘口') return 'sweet';
     if (initialTaste === '辛口') return 'dry';
     if (initialKeyword === '初心者') return 'beginner';
     if (initialKeyword === 'ギフト') return 'gift';
     if (initialKeyword === '晩酌') return 'daily';
     return 'all';
-  };
+  }, [initialTaste, initialKeyword]);
 
-  // フィルター（プルダウン）が変更された時の処理
   const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
     if (val === 'all') router.push('/list');
@@ -64,7 +54,6 @@ function ListContent() {
     else if (val === 'daily') router.push('/list?q=晩酌');
   };
 
-  // 検索窓で検索が実行された時の処理
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (keyword.trim()) {
@@ -72,60 +61,74 @@ function ListContent() {
     }
   };
 
+  const fetchSakes = useCallback(async (ignore: boolean) => {
+    setLoading(true);
+    
+    const q = searchParams.get('q');
+    const taste = searchParams.get('taste');
 
-  useEffect(() => {
-    const fetchSakes = async () => {
-      setLoading(true);
-      
-    // URLから最新のパラメータを取得
-      const q = searchParams.get('q');
-      const taste = searchParams.get('taste');
-      setKeyword(q || '');
+    let query = supabase.from('sakes').select('*');
+    if (taste) {
+      query = query.eq('taste', taste);
+    } else if (q) {
+      query = query.or(`name.ilike.%${q}%,brewery.ilike.%${q}%,description.ilike.%${q}%`);
+    }
 
-      // データベースへのクエリを作成
-      let query = supabase.from('sakes').select('*');
-      // 条件による絞り込み
-      if (taste) {
-        query = query.eq('taste', taste);
-      } else if (q) {
-        query = query.or(`name.ilike.%${q}%,brewery.ilike.%${q}%,description.ilike.%${q}%`);
-      }
-      // 並び替え（ソート）
-      if (sortOrder === 'price_asc') {
-        query = query.order('price', { ascending: true });
-      } else if (sortOrder === 'price_desc') {
-        query = query.order('price', { ascending: false });
-      } else if (sortOrder !== 'prefecture') {
-        query = query.order('id', { ascending: false });
-      }
-      // データの実行と取得
-      const { data, error } = await query;
+    if (sortOrder === 'price_asc') {
+      query = query.order('price', { ascending: true });
+    } else if (sortOrder === 'price_desc') {
+      query = query.order('price', { ascending: false });
+    } else if (sortOrder !== 'prefecture') {
+      query = query.order('id', { ascending: false });
+    }
 
-      if (error) {
-        console.error('検索エラー:', error);
-        setSakes([]);
-      } else {
-        const fetchedData = (data as unknown as Sake[]) || [];
-        const result = [...fetchedData];
-        // 都道府県順の並び替え
+    const { data, error } = await query;
+
+    if (ignore) return;
+
+    if (error) {
+      console.error('検索エラー:', error);
+      setSakes([]);
+    } else if (data) {
+      const zodResult = sakeListSchema.safeParse(data);
+      if (zodResult.success) {
+        const result = [...zodResult.data];
         if (sortOrder === 'prefecture') {
           result.sort((a, b) => {
-            const indexA = PREF_ORDER.indexOf(a.prefecture);
-            const indexB = PREF_ORDER.indexOf(b.prefecture);
+            const indexA = PREF_ORDER.indexOf(a.prefecture || "");
+            const indexB = PREF_ORDER.indexOf(b.prefecture || "");
             return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
           });
         }
         setSakes(result);
+      } else {
+        console.error('データ形式エラー:', zodResult.error.format());
       }
-      setLoading(false);
-    };
-    fetchSakes();
+    }
+    setLoading(false);
   }, [searchParams, sortOrder]);
 
+  useEffect(() => {
+    let ignore = false;
+
+    // setKeyword と fetchSakes を非同期の setTimeout にまとめる
+    // これで画像 image_98715e.png の cascading renders エラーを解消します
+    const timer = setTimeout(() => {
+      if (!ignore) {
+        const q = searchParams.get('q');
+        setKeyword(q || ''); // ← ここを非同期にしました
+        void fetchSakes(ignore);
+      }
+    }, 0);
+
+    return () => {
+      ignore = true;
+      clearTimeout(timer);
+    };
+  }, [fetchSakes, searchParams]);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      {/* ヘッダー */}
       <header className="bg-white sticky top-0 z-10 border-b border-gray-100">
         <div className="w-full max-w-6xl mx-auto px-6 md:px-10 py-6 flex items-center gap-6">
           <Link href="/" className="p-3 -ml-3 hover:bg-gray-100 rounded-full transition">
@@ -144,9 +147,7 @@ function ListContent() {
         </div>
       </header>
 
-      {/* 検索結果エリア */}
       <div className="w-full max-w-6xl mx-auto px-6 md:px-10 py-8">
-        
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10">
           <div>
             <h2 className="font-bold text-2xl text-gray-800 mb-2">
@@ -156,7 +157,6 @@ function ListContent() {
           </div>
 
           <div className="flex flex-wrap items-center gap-4">
-            {/* フィルタープルダウン */}
             <div className="flex items-center gap-3">
               <Filter className="w-5 h-5 text-gray-400" />
               <select 
@@ -172,7 +172,6 @@ function ListContent() {
                 <option value="daily">自分用</option>
               </select>
             </div>
-            {/* 並び順プルダウン */}
             <div className="flex items-center gap-3">
               <SlidersHorizontal className="w-5 h-5 text-gray-400" />
               <select 
@@ -188,7 +187,7 @@ function ListContent() {
             </div>
           </div>
         </div>
-        {/* リスト表示部分 */}
+
         {loading ? (
           <p className="text-center py-20 text-gray-400 text-base">読み込み中...</p>
         ) : sakes.length === 0 ? (
@@ -197,7 +196,6 @@ function ListContent() {
             <Link href="/list" className="text-indigo-600 underline text-base font-bold">条件をクリアして全件表示</Link>
           </div>
         ) : (
-          // データがある場合：グリッドレイアウトでカードを表示
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 md:gap-8">
             {sakes.map((sake) => (
               <Link href={`/list/${sake.id}`} key={sake.id} className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-lg transition group border border-gray-100 flex flex-col">
@@ -207,20 +205,18 @@ function ListContent() {
                   ) : (
                     <span className="text-gray-300 font-bold text-lg">No Image</span>
                   )}
-                  {/* タグ表示（味、価格） */}
+                  {/* Zodに taste を追加したので、画像 image_986c82.png のエラーが消えます */}
                   <div className="absolute top-3 right-3 flex flex-col gap-2 items-end">
-                    <span className="bg-white/95 backdrop-blur text-xs px-3 py-1 rounded-lg shadow-sm text-gray-700 font-bold">{sake.taste}</span>
+                    {sake.taste && (
+                      <span className="bg-white/95 backdrop-blur text-xs px-3 py-1 rounded-lg shadow-sm text-gray-700 font-bold">{sake.taste}</span>
+                    )}
                     <span className="bg-indigo-900/95 backdrop-blur text-sm px-3 py-1.5 rounded-lg shadow-sm text-white font-bold">¥{sake.price?.toLocaleString()}</span>
                   </div>
                 </div>
-
-                {/* カード情報部分 */}
                 <div className="p-5 flex-1 flex flex-col justify-end">
-                 {/* 酒造名 / 県名 */}
                   <p className={`text-xs mb-2 font-bold leading-tight ${sortOrder === 'prefecture' ? 'text-indigo-600' : 'text-gray-600'}`}>
                     {sake.brewery} / {sake.prefecture}
                   </p>
-                  {/* 銘柄名 */}
                   <h3 className="font-bold text-gray-900 text-sm leading-tight line-clamp-2 group-hover:text-indigo-700 transition">{sake.name}</h3>
                 </div>
               </Link>
@@ -232,7 +228,6 @@ function ListContent() {
   );
 }
 
-
 export default function ListPage() {
   return (
     <Suspense fallback={<div className="p-10 text-center text-base">Loading...</div>}>
@@ -240,5 +235,4 @@ export default function ListPage() {
     </Suspense>
   );
 }
-
 
