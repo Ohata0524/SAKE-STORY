@@ -4,7 +4,7 @@ import { Star, Edit, Trash2 } from 'lucide-react';
 import { z } from "zod";
 import { myReviewSchema } from '@/domain/schemas/schemas';
 
-// 修正：any を排除し、定義済みのスキーマから型を抽出
+// Zodから厳密な型を抽出
 type ReviewWithSake = z.infer<typeof myReviewSchema>;
 
 interface ReviewCardProps {
@@ -16,13 +16,14 @@ interface ReviewCardProps {
 export const ReviewCard = ({ review, onEdit, onDelete }: ReviewCardProps) => (
   <div className="bg-white p-5 md:p-6 rounded-xl border border-gray-200 shadow-sm relative group hover:shadow-md transition">
     <div className="absolute top-5 right-5 flex gap-2 z-10">
-      <button onClick={onEdit} className="p-1.5 bg-gray-100 hover:bg-indigo-100 text-gray-500 rounded-full transition">
+      <button onClick={onEdit} className="p-1.5 bg-gray-100 hover:bg-indigo-100 text-gray-500 rounded-full transition" title="編集">
         <Edit className="w-4 h-4" />
       </button>
-      <button onClick={onDelete} className="p-1.5 bg-gray-100 hover:bg-red-100 text-gray-500 rounded-full transition">
+      <button onClick={onDelete} className="p-1.5 bg-gray-100 hover:bg-red-100 text-gray-500 rounded-full transition" title="削除">
         <Trash2 className="w-4 h-4" />
       </button>
     </div>
+    
     <Link href={`/list/${review.sakes?.id}`} className="flex flex-col md:flex-row gap-5">
       <div className="w-24 h-24 bg-gray-100 rounded-lg overflow-hidden relative flex-shrink-0">
         <Image 
@@ -39,7 +40,7 @@ export const ReviewCard = ({ review, onEdit, onDelete }: ReviewCardProps) => (
             <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'fill-current' : 'text-gray-200'}`} />
           ))}
         </div>
-        <p className="text-sm text-gray-700 line-clamp-2">{review.comment}</p>
+        <p className="text-sm text-gray-700 line-clamp-2 leading-relaxed">{review.comment}</p>
       </div>
     </Link>
   </div>

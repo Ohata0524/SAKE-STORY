@@ -34,27 +34,31 @@ function ListContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-white sticky top-0 z-10 border-b border-gray-100 p-6">
+    /* 修正：page-container クラスを適用 */
+    <div className="page-container">
+      {/* ヘッダー：bg-surface-card を適用 */}
+      <header className="bg-surface-card sticky top-0 z-10 border-b border-gray-100 p-6">
         <div className="w-full max-w-6xl mx-auto flex items-center gap-6">
-          <Link href="/" className="p-3 -ml-3 hover:bg-gray-100 rounded-full transition">
-            <ArrowLeft className="w-8 h-8 text-gray-600" />
+          <Link href="/" className="p-3 -ml-3 hover:bg-surface-base rounded-full transition group">
+            <ArrowLeft className="w-8 h-8 text-gray-600 group-hover:text-brand-accent transition" />
           </Link>
-          <form onSubmit={handleSearch} className="flex-1 flex items-center bg-gray-100 rounded-full px-6 py-3">
+          {/* 検索バー：bg-surface-base を適用 */}
+          <form onSubmit={handleSearch} className="flex-1 flex items-center bg-surface-base rounded-full px-6 py-3 border border-transparent focus-within:border-brand-accent transition-all">
             <Search className="w-5 h-5 text-gray-400 mr-3" />
             <input 
               type="text" placeholder="銘柄・酒造名で検索" 
-              className="bg-transparent border-none outline-none text-base w-full text-gray-700"
+              className="bg-transparent border-none outline-none text-base w-full text-gray-700 placeholder-gray-400"
               value={keyword} onChange={(e) => setKeyword(e.target.value)}
             />
           </form>
         </div>
       </header>
 
-      <main className="w-full max-w-6xl mx-auto px-6 py-8">
+      {/* 修正：section-container クラスを適用 */}
+      <main className="section-container py-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10">
           <div>
-            <h2 className="font-bold text-2xl text-gray-800 mb-2">
+            <h2 className="font-bold text-2xl text-gray-800 mb-2 font-serif">
               {initialTaste ? `「${initialTaste}」のお酒` : (initialKeyword ? `「${initialKeyword}」の検索結果` : 'すべてのお酒')}
             </h2>
             <span className="text-sm text-gray-500 font-bold">{sakes.length}件が見つかりました</span>
@@ -86,11 +90,12 @@ function ListContent() {
         </div>
 
         {loading ? (
-          <p className="text-center py-20 text-gray-400">読み込み中...</p>
+          <p className="text-center py-20 text-gray-400 font-medium">物語を読み込み中...</p>
         ) : sakes.length === 0 ? (
           <div className="text-center py-32">
-            <p className="text-gray-400 mb-6">条件に合う日本酒が見つかりませんでした。</p>
-            <Link href="/list" className="text-indigo-600 underline font-bold">条件をクリアして全件表示</Link>
+            <p className="text-gray-400 mb-6 font-medium">条件に合う日本酒が見つかりませんでした。</p>
+            {/* 修正：text-brand-accent を適用 */}
+            <Link href="/list" className="text-brand-accent hover:text-brand-highlight underline font-bold transition">条件をクリアして全件表示</Link>
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 md:gap-8">
@@ -106,7 +111,7 @@ function ListContent() {
 
 export default function ListPage() {
   return (
-    <Suspense fallback={<div className="p-10 text-center">Loading...</div>}>
+    <Suspense fallback={<div className="p-10 text-center text-gray-400 font-medium">Loading...</div>}>
       <ListContent />
     </Suspense>
   );

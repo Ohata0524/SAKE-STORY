@@ -15,12 +15,10 @@ export const useHome = () => {
   const fetchRecommendations = useCallback(async (isMounted: boolean) => {
     try {
       const data = await sakeRepository.findAll();
-      
       if (!isMounted) return;
 
       const result = sakeListSchema.safeParse(data);
       if (result.success) {
-        // トップ画面用に最大8件を表示
         setSakes(result.data.slice(0, 8) as unknown as Sake[]);
       }
     } catch (error) {
@@ -32,15 +30,15 @@ export const useHome = () => {
     let isMounted = true;
 
     const initialize = async () => {
-      // 1. 年齢確認のチェック (localStorage)
+      // 1. 年齢確認のチェック
       const isVerified = localStorage.getItem('ageVerified');
       
-      // 修正：非同期のコンテキスト内で実行することで Cascading Renders を回避
+      // 非同期の初期化フローに入れることで警告を回避
       if (!isVerified && isMounted) {
         setShowAgeModal(true);
       }
 
-      // 2. おすすめの取得
+      // 2. データのフェッチ
       await fetchRecommendations(isMounted);
     };
 

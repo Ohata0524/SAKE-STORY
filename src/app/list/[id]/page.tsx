@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { 
   ArrowLeft, Heart, BookOpen, Snowflake, Thermometer, Flame, 
-  Fish, Pizza, Utensils, Star, User, Quote 
+  Utensils, Star, User, Quote 
 } from 'lucide-react';
 
 import { supabase } from '@/infrastructure/supabase/supabaseClient';
@@ -16,8 +16,9 @@ import { sakeRepository } from '@/infrastructure/repositories/sakeRepository';
 import { favoriteRepository } from '@/infrastructure/repositories/favoriteRepository';
 import { reviewSchema, type ReviewInput } from '@/domain/schemas/schemas';
 import { Sake } from '@/domain/models/sake';
+import { Button } from '@/components/atoms/Button';
 
-// --- 型定義：any を排除 ---
+// --- 型定義 ---
 type RecommendationLevel = 'double_circle' | 'circle' | 'triangle';
 
 interface Product {
@@ -55,7 +56,8 @@ interface Review {
 
 const LevelIcon = ({ level }: { level: RecommendationLevel }) => {
   switch (level) {
-    case 'double_circle': return <span className="text-3xl font-black text-indigo-900 block mt-2">◎</span>;
+    /* text-brand-primary を適用 */
+    case 'double_circle': return <span className="text-3xl font-black text-brand-primary block mt-2">◎</span>;
     case 'circle': return <span className="text-2xl font-bold text-gray-400 block mt-2">○</span>;
     case 'triangle': return <span className="text-xl text-gray-300 block mt-2">△</span>;
     default: return null;
@@ -63,16 +65,17 @@ const LevelIcon = ({ level }: { level: RecommendationLevel }) => {
 };
 
 const StorySection = ({ markdown }: { markdown: string }) => (
-  <section className="relative bg-white border-4 border-indigo-900 rounded-[2rem] p-8 md:p-12 shadow-xl overflow-hidden isolate">
+  /* border-brand-primary, rounded-sake を適用 */
+  <section className="relative bg-surface-card border-4 border-brand-primary rounded-sake p-8 md:p-12 shadow-xl overflow-hidden isolate">
     <div className="absolute -right-10 -bottom-10 text-indigo-50 opacity-60 -z-10 transform rotate-12">
       <BookOpen size={240} />
     </div>
     <div className="flex flex-col gap-5 mb-8 relative z-10">
-      <div className="self-start bg-indigo-900 text-white text-base font-bold px-5 py-2 rounded-full tracking-widest flex items-center gap-2 shadow-md">
+      <div className="self-start bg-brand-primary text-white text-base font-bold px-5 py-2 rounded-full tracking-widest flex items-center gap-2 shadow-md">
         <BookOpen className="w-5 h-5" />
         SAKE STORY
       </div>
-      <h3 className="font-serif font-bold text-2xl md:text-3xl text-gray-900 border-b-4 border-indigo-100 pb-5 leading-tight">
+      <h3 className="font-serif font-bold text-2xl md:text-3xl text-gray-900 border-b-4 border-brand-accent/20 pb-5 leading-tight">
         物語 - この一本が生まれるまで
       </h3>
     </div>
@@ -86,7 +89,7 @@ const StorySection = ({ markdown }: { markdown: string }) => (
       </ReactMarkdown>
     </div>
     <div className="flex justify-end mt-2">
-      <Quote className="w-10 h-10 text-indigo-200 transform rotate-180" />
+      <Quote className="w-10 h-10 text-brand-accent/30 transform rotate-180" />
     </div>
   </section>
 );
@@ -94,9 +97,10 @@ const StorySection = ({ markdown }: { markdown: string }) => (
 const DrinkStyleItem = ({ icon, label, level }: { icon: React.ReactNode, label: string, level: RecommendationLevel }) => {
   const isBest = level === 'double_circle';
   return (
-    <div className={`flex-1 flex flex-col items-center justify-center p-4 rounded-xl ${isBest ? 'bg-indigo-50 border-2 border-indigo-100' : ''}`}>
+    /* bg-brand-primary/5, border-brand-accent/20 を適用 */
+    <div className={`flex-1 flex flex-col items-center justify-center p-4 rounded-xl transition-all ${isBest ? 'bg-brand-primary/5 border-2 border-brand-accent/20' : ''}`}>
       {icon}
-      <span className={`text-base font-bold mt-2 ${isBest ? 'text-indigo-900' : 'text-gray-600'}`}>{label}</span>
+      <span className={`text-base font-bold mt-2 ${isBest ? 'text-brand-primary' : 'text-gray-600'}`}>{label}</span>
       <LevelIcon level={level} />
     </div>
   );
@@ -167,17 +171,18 @@ const ReviewSection = ({ sakeId }: { sakeId: number }) => {
 
   return (
     <section className="flex flex-col items-center w-full pt-12 border-t border-gray-200 mt-10">
-      <h3 className="font-bold text-2xl mb-8">みんなのレビュー</h3>
+      <h3 className="font-brand font-bold text-2xl mb-8 text-brand-primary">みんなのレビュー</h3>
       <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
         {reviews.length === 0 ? (
-          <div className="md:col-span-2 text-center text-gray-400 py-12 bg-gray-50 rounded-[2rem]">
+          /* bg-surface-base, rounded-sake を適用 */
+          <div className="md:col-span-2 text-center text-gray-400 py-12 bg-surface-base rounded-sake">
             まだレビューはありません。
           </div>
         ) : (
           reviews.map((review) => (
-            <div key={review.id} className="bg-gray-50 p-6 rounded-[2rem] shadow-sm">
+            <div key={review.id} className="bg-surface-base p-6 rounded-sake shadow-sm">
               <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-sm">
+                <div className="w-12 h-12 bg-surface-card rounded-full flex items-center justify-center shadow-sm">
                   <User className="w-6 h-6 text-gray-500" />
                 </div>
                 <div>
@@ -195,8 +200,9 @@ const ReviewSection = ({ sakeId }: { sakeId: number }) => {
         )}
       </div>
       {user && (
-        <form onSubmit={handleSubmit(onSubmit)} className="w-full max-w-3xl bg-white p-8 rounded-[2rem] border border-gray-200 shadow-md">
-          <p className="font-bold text-lg mb-4">レビューを書く</p>
+        /* bg-surface-card, rounded-sake を適用 */
+        <form onSubmit={handleSubmit(onSubmit)} className="w-full max-w-3xl bg-surface-card p-8 rounded-sake border border-gray-200 shadow-md">
+          <p className="font-bold text-lg mb-4 text-brand-primary">レビューを書く</p>
           <div className="flex gap-3 mb-6">
             {[1, 2, 3, 4, 5].map((num) => (
               <button key={num} type="button" onClick={() => setValue("rating", num)} className="hover:scale-110 transition">
@@ -204,10 +210,10 @@ const ReviewSection = ({ sakeId }: { sakeId: number }) => {
               </button>
             ))}
           </div>
-          <textarea {...register("comment")} className="w-full border border-gray-300 p-5 rounded-2xl mb-6 min-h-[120px]" placeholder="感想を教えてください..." />
-          <button type="submit" disabled={isSubmitting} className="w-full py-4 bg-indigo-900 text-white rounded-2xl font-bold text-lg hover:bg-indigo-800 transition disabled:opacity-50">
-            投稿する
-          </button>
+          <textarea {...register("comment")} className="w-full border border-gray-300 p-5 rounded-2xl mb-6 min-h-[120px] focus:ring-2 focus:ring-brand-accent focus:outline-none transition-all" placeholder="感想を教えてください..." />
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? '投稿中...' : '投稿する'}
+          </Button>
         </form>
       )}
     </section>
@@ -254,7 +260,6 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             priceRange: data.price ? `¥${data.price.toLocaleString()}` : 'ー',
           },
           recommendations: {
-            // any を排除して RecommendationLevel へキャスト
             cold: (data.rec_cold as RecommendationLevel) || 'circle',
             room: (data.rec_room as RecommendationLevel) || 'circle',
             hot: (data.rec_hot as RecommendationLevel) || 'circle',
@@ -292,25 +297,26 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     }
   };
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">読み込み中...</div>;
-  if (!product) return <div className="min-h-screen flex items-center justify-center">見つかりませんでした</div>;
+  if (loading) return <div className="page-container flex items-center justify-center text-gray-400 font-bold">物語を読み込み中...</div>;
+  if (!product) return <div className="page-container flex items-center justify-center text-gray-400">見つかりませんでした</div>;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <main className="w-full max-w-6xl mx-auto bg-white min-h-screen md:my-8 md:rounded-[2rem] md:shadow-2xl pb-32 relative">
-        <header className="flex justify-between items-center p-6 sticky top-0 bg-white/95 backdrop-blur-md z-20 border-b border-gray-100">
-          <Link href="/list" className="p-2 hover:bg-gray-100 rounded-full transition">
-            <ArrowLeft className="w-7 h-7" />
+    <div className="page-container">
+      {/* main に bg-surface-card, rounded-sake を適用 */}
+      <main className="w-full max-w-6xl mx-auto bg-surface-card min-h-screen md:my-8 md:rounded-sake md:shadow-2xl pb-32 relative">
+        <header className="flex justify-between items-center p-6 sticky top-0 bg-surface-card/95 backdrop-blur-md z-20 border-b border-gray-100">
+          <Link href="/list" className="p-2 hover:bg-surface-base rounded-full transition group">
+            <ArrowLeft className="w-7 h-7 text-gray-600 group-hover:text-brand-accent" />
           </Link>
-          <h1 className="font-bold text-xl">SAKE STORY</h1>
-          <button onClick={toggleFavorite} className="p-2 hover:bg-gray-100 rounded-full transition">
+          <h1 className="font-brand font-bold text-xl text-brand-primary tracking-widest">SAKE STORY</h1>
+          <button onClick={toggleFavorite} className="p-2 hover:bg-surface-base rounded-full transition">
             <Heart className={`w-7 h-7 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-800'}`} />
           </button>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 p-6 lg:p-12">
           <div className="lg:col-span-5">
-            <div className="aspect-square bg-gray-50 rounded-[2rem] overflow-hidden relative border border-gray-100 shadow-inner">
+            <div className="aspect-square bg-surface-base rounded-sake overflow-hidden relative border border-gray-100 shadow-inner">
               <Image 
                 src={product.imageUrl} 
                 alt={product.name} 
@@ -321,11 +327,11 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           </div>
           <div className="lg:col-span-7 space-y-12">
             <section className="space-y-6">
-              <h2 className="text-3xl lg:text-4xl font-black text-gray-900">{product.name}</h2>
+              <h2 className="text-3xl lg:text-4xl font-black text-gray-900 font-brand tracking-tight">{product.name}</h2>
               <div className="flex flex-wrap gap-3 text-sm font-bold text-gray-600">
-                <span className="bg-white px-4 py-1.5 rounded-full border border-gray-200 shadow-sm">{product.tags.taste}</span>
-                <span className="bg-white px-4 py-1.5 rounded-full border border-gray-200 shadow-sm">{product.tags.region}</span>
-                <span className="bg-white px-4 py-1.5 rounded-full border border-gray-200 shadow-sm">{product.tags.priceRange}</span>
+                <span className="bg-surface-card px-4 py-1.5 rounded-full border border-gray-200 shadow-sm">{product.tags.taste}</span>
+                <span className="bg-surface-card px-4 py-1.5 rounded-full border border-gray-200 shadow-sm">{product.tags.region}</span>
+                <span className="bg-brand-primary text-white px-4 py-1.5 rounded-full shadow-md">{product.tags.priceRange}</span>
               </div>
             </section>
             
@@ -333,17 +339,17 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
             <section className="w-full">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-                <div className="bg-white p-6 rounded-[2rem] border border-gray-200 shadow-sm">
-                  <h4 className="font-bold text-gray-800 mb-5 text-center border-b pb-3">おすすめの温度帯</h4>
+                <div className="bg-surface-card p-6 rounded-sake border border-gray-100 shadow-sm">
+                  <h4 className="font-bold text-brand-primary mb-5 text-center border-b border-brand-accent/10 pb-3 font-brand">おすすめの温度帯</h4>
                   <div className="flex gap-3 justify-between">
                     <DrinkStyleItem icon={<Snowflake className="w-8 h-8 text-blue-400" />} label="冷酒" level={product.recommendations.cold} />
                     <DrinkStyleItem icon={<Thermometer className="w-8 h-8 text-green-600" />} label="常温" level={product.recommendations.room} />
                     <DrinkStyleItem icon={<Flame className="w-8 h-8 text-red-500" />} label="熱燗" level={product.recommendations.hot} />
                   </div>
                 </div>
-                <div className="bg-white p-6 rounded-[2rem] border border-gray-200 shadow-sm flex flex-col justify-center items-center">
-                  <h4 className="font-bold text-gray-800 mb-5 text-center border-b pb-3 w-full">おすすめペアリング</h4>
-                  <Utensils className="w-12 h-12 mb-3 text-indigo-500" />
+                <div className="bg-surface-card p-6 rounded-sake border border-gray-100 shadow-sm flex flex-col justify-center items-center">
+                  <h4 className="font-bold text-brand-primary mb-5 text-center border-b border-brand-accent/10 pb-3 w-full font-brand">おすすめペアリング</h4>
+                  <Utensils className="w-12 h-12 mb-3 text-brand-accent opacity-80" />
                   <span className="text-xl font-bold text-gray-800 mt-1">{product.pairings[0].name}</span>
                 </div>
               </div>
@@ -352,14 +358,9 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             <ReviewSection sakeId={product.id} />
 
             <div className="hidden lg:flex justify-center pt-6">
-              <a 
-                href={product.officialUrl} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="w-full max-w-md bg-black text-white py-4 rounded-2xl font-bold text-center shadow-xl hover:bg-gray-800 transition transform active:scale-[0.98]"
-              >
+              <Button onClick={() => window.open(product.officialUrl, '_blank')}>
                 公式サイトへ移動
-              </a>
+              </Button>
             </div>
           </div>
         </div>
@@ -367,3 +368,4 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     </div>
   );
 }
+
