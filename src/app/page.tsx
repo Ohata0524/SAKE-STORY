@@ -31,7 +31,6 @@ export default function Home() {
       const data = await sakeRepository.findAll();
       
       if (!isMounted) return;
-
       const result = sakeListSchema.safeParse(data);
       if (result.success) {
         // トップ画面用に最大8件を表示
