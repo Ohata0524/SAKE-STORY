@@ -1,44 +1,13 @@
 'use client';
 
 import React from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-
-// アーキテクチャ刷新に基づいたパスエイリアス (@/) でのインポート
-import { authRepository } from '@/infrastructure/repositories/authRepository';
-import { loginSchema, type LoginInput } from '@/domain/schemas/schemas';
+import { useLogin } from '@/hooks/useLogin';
+import { Button } from '@/components/atoms/Button';
+import { FormField } from '@/components/molecules/FormField';
 
 export default function LoginPage() {
-  const router = useRouter();
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting }, // isLoadingからisSubmittingへ修正
-  } = useForm<LoginInput>({
-    resolver: zodResolver(loginSchema),
-    mode: "onBlur",
-  });
-
-  const onSubmit = async (data: LoginInput) => {
-    try {
-      // 直接 Supabase を呼ばず、認証リポジトリにお願いする
-      await authRepository.login(data);
-
-      router.push('/');
-      router.refresh();
-
-    } catch (error) {
-      console.error('Login failed', error);
-      let message = 'メールかパスワードが違います';
-      if (error instanceof Error) {
-        message = error.message;
-      }
-      alert('ログインに失敗しました: ' + message);
-    }
-  };
+  const { register, handleSubmit, errors, isSubmitting } = useLogin();
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -50,50 +19,27 @@ export default function LoginPage() {
             <h2 className="mt-4 text-xl font-bold text-gray-900">おかえりなさい</h2>
           </div>
 
-          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
-            
-            {/* メールアドレス */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-bold text-gray-700 mb-2">
-                メールアドレス
-              </label>
-              <input
-                {...register("email")}
-                type="email"
-                placeholder="example@email.com"
-                className={`appearance-none block w-full px-4 py-3 border ${errors.email ? 'border-red-500' : 'border-gray-300'} rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-base`}
-              />
-              {errors.email && (
-                <p className="mt-2 text-sm text-red-600 font-bold">{errors.email.message}</p>
-              )}
-            </div>
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <FormField
+              label="メールアドレス"
+              type="email"
+              placeholder="example@email.com"
+              error={errors.email}
+              {...register("email")}
+            />
 
-            {/* パスワード */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-bold text-gray-700 mb-2">
-                パスワード
-              </label>
-              <input
-                {...register("password")}
-                type="password"
-                placeholder="••••••••"
-                className={`appearance-none block w-full px-4 py-3 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-base`}
-              />
-              {errors.password && (
-                <p className="mt-2 text-sm text-red-600 font-bold">{errors.password.message}</p>
-              )}
-            </div>
+            <FormField
+              label="パスワード"
+              type="password"
+              placeholder="••••••••"
+              error={errors.password}
+              {...register("password")}
+            />
 
-            {/* ログインボタン */}
             <div className="pt-2">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-md text-base font-bold text-white bg-indigo-900 hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all transform active:scale-[0.98]
-                  ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
-              >
+              <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? 'ログイン中...' : 'ログイン'}
-              </button>
+              </Button>
             </div>
           </form>
 
@@ -111,4 +57,3 @@ export default function LoginPage() {
     </div>
   );
 }
-

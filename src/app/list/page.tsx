@@ -1,148 +1,57 @@
 'use client';
 
-import React, { useState, useEffect, Suspense, useCallback } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import React, { Suspense } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { ArrowLeft, Search, SlidersHorizontal, Filter } from 'lucide-react';
-
-// アーキテクチャ刷新に基づいたパスエイリアス (@/) でのインポート
-import { sakeRepository } from '@/infrastructure/repositories/sakeRepository';
-import { Sake } from '@/domain/models/sake';
-import { sakeListSchema } from '@/domain/schemas/schemas';
-
-const PREF_ORDER = [
-  "北海道", "青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県",
-  "茨城県", "栃木県", "群馬県", "埼玉県", "千葉県", "東京都", "神奈川県",
-  "新潟県", "富山県", "石川県", "福井県", "山梨県", "長野県", "岐阜県",
-  "静岡県", "愛知県", "三重県", "滋賀県", "京都府", "大阪府", "兵庫県",
-  "奈良県", "和歌山県", "鳥取県", "島根県", "岡山県", "広島県", "山口県",
-  "徳島県", "香川県", "愛媛県", "高知県", "福岡県", "佐賀県", "長崎県",
-  "熊本県", "大分県", "宮崎県", "鹿児島県", "沖縄県"
-];
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, Search, SlidersHorizontal, Filter as FilterIcon } from 'lucide-react';
+import { useSakeList } from '@/hooks/useSakeList';
+import { Select } from '@/components/atoms/Select';
+import { SakeListCard } from '@/components/organisms/SakeListCard';
 
 function ListContent() {
-  const searchParams = useSearchParams();
   const router = useRouter();
-  
-  const initialKeyword = searchParams.get('q') || '';
-  const initialTaste = searchParams.get('taste') || '';
-
-  const [sakes, setSakes] = useState<Sake[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [keyword, setKeyword] = useState(initialKeyword);
-  const [sortOrder, setSortOrder] = useState('newest');
-
-  const getCurrentFilter = useCallback(() => {
-    if (initialTaste === '甘口') return 'sweet';
-    if (initialTaste === '辛口') return 'dry';
-    if (initialKeyword === '初心者') return 'beginner';
-    if (initialKeyword === 'ギフト') return 'gift';
-    if (initialKeyword === '晩酌') return 'daily';
-    return 'all';
-  }, [initialTaste, initialKeyword]);
+  const {
+    sakes, loading, keyword, setKeyword, sortOrder, setSortOrder,
+    initialTaste, initialKeyword, getCurrentFilter
+  } = useSakeList();
 
   const handleFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value;
-    if (val === 'all') router.push('/list');
-    else if (val === 'sweet') router.push('/list?taste=甘口');
-    else if (val === 'dry') router.push('/list?taste=辛口');
-    else if (val === 'beginner') router.push('/list?q=初心者');
-    else if (val === 'gift') router.push('/list?q=ギフト');
-    else if (val === 'daily') router.push('/list?q=晩酌');
+    const paths: Record<string, string> = {
+      all: '/list',
+      sweet: '/list?taste=甘口',
+      dry: '/list?taste=辛口',
+      beginner: '/list?q=初心者',
+      gift: '/list?q=ギフト',
+      daily: '/list?q=晩酌'
+    };
+    router.push(paths[val] || '/list');
   };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (keyword.trim()) {
-      router.push(`/list?q=${encodeURIComponent(keyword)}`);
-    } else {
-      router.push('/list');
-    }
+    router.push(keyword.trim() ? `/list?q=${encodeURIComponent(keyword)}` : '/list');
   };
-
-  const fetchSakes = useCallback(async (isMounted: boolean) => {
-    setLoading(true);
-    
-    const q = searchParams.get('q');
-    const taste = searchParams.get('taste');
-
-    try {
-      // 修正：直接 Supabase を呼ばず、リポジトリを経由する
-      const data = await sakeRepository.findAll();
-
-      if (!isMounted) return;
-
-      // 検索・フィルタリング処理
-      let filteredData = data;
-      if (taste) {
-        filteredData = data.filter(s => s.taste === taste);
-      } else if (q) {
-        const lowerQ = q.toLowerCase();
-        filteredData = data.filter(s => 
-          s.name.toLowerCase().includes(lowerQ) || 
-          s.brewery.toLowerCase().includes(lowerQ)
-        );
-      }
-
-      // Zodでの検品（型の不整合を解消するために unknown を経由してキャストします）
-      const zodResult = sakeListSchema.safeParse(filteredData);
-      
-      if (zodResult.success) {
-        // ESLint警告に対応し、const を使用
-        const result = [...zodResult.data] as unknown as Sake[];
-        
-        // ソート処理
-        if (sortOrder === 'price_asc') {
-          result.sort((a, b) => (a.price || 0) - (b.price || 0));
-        } else if (sortOrder === 'price_desc') {
-          result.sort((a, b) => (b.price || 0) - (a.price || 0));
-        } else if (sortOrder === 'prefecture') {
-          result.sort((a, b) => {
-            const indexA = PREF_ORDER.indexOf(a.prefecture || "");
-            const indexB = PREF_ORDER.indexOf(b.prefecture || "");
-            return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
-          });
-        }
-        
-        setSakes(result);
-      }
-    } catch (error) {
-      console.error('取得エラー:', error);
-    } finally {
-      if (isMounted) setLoading(false);
-    }
-  }, [searchParams, sortOrder]);
-
-  useEffect(() => {
-    let isMounted = true;
-    const q = searchParams.get('q');
-    setKeyword(q || '');
-    void fetchSakes(isMounted);
-    return () => { isMounted = false; };
-  }, [fetchSakes, searchParams]);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <header className="bg-white sticky top-0 z-10 border-b border-gray-100">
-        <div className="w-full max-w-6xl mx-auto px-6 md:px-10 py-6 flex items-center gap-6">
+      <header className="bg-white sticky top-0 z-10 border-b border-gray-100 p-6">
+        <div className="w-full max-w-6xl mx-auto flex items-center gap-6">
           <Link href="/" className="p-3 -ml-3 hover:bg-gray-100 rounded-full transition">
             <ArrowLeft className="w-8 h-8 text-gray-600" />
           </Link>
           <form onSubmit={handleSearch} className="flex-1 flex items-center bg-gray-100 rounded-full px-6 py-3">
             <Search className="w-5 h-5 text-gray-400 mr-3" />
             <input 
-              type="text" 
-              placeholder="銘柄・酒造名で検索" 
-              className="bg-transparent border-none outline-none text-base w-full text-gray-700 placeholder-gray-400"
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
+              type="text" placeholder="銘柄・酒造名で検索" 
+              className="bg-transparent border-none outline-none text-base w-full text-gray-700"
+              value={keyword} onChange={(e) => setKeyword(e.target.value)}
             />
           </form>
         </div>
       </header>
 
-      <div className="w-full max-w-6xl mx-auto px-6 md:px-10 py-8">
+      <main className="w-full max-w-6xl mx-auto px-6 py-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10">
           <div>
             <h2 className="font-bold text-2xl text-gray-800 mb-2">
@@ -152,86 +61,53 @@ function ListContent() {
           </div>
 
           <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-3">
-              <Filter className="w-5 h-5 text-gray-400" />
-              <select 
-                value={getCurrentFilter()}
-                onChange={handleFilterChange}
-                className="bg-white border border-gray-200 text-gray-700 text-sm font-sans rounded-xl focus:ring-indigo-500 focus:border-indigo-500 block p-3 pr-8"
-              >
-                <option value="all">すべての条件</option>
-                <option value="beginner">初心者おすすめ</option>
-                <option value="sweet">甘口</option>
-                <option value="dry">辛口</option>
-                <option value="gift">ギフト用</option>
-                <option value="daily">自分用</option>
-              </select>
-            </div>
-            <div className="flex items-center gap-3">
-              <SlidersHorizontal className="w-5 h-5 text-gray-400" />
-              <select 
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value)}
-                className="bg-white border border-gray-200 text-gray-700 text-sm font-sans rounded-xl focus:ring-indigo-500 focus:border-indigo-500 block p-3 pr-8"
-              >
-                <option value="newest">おすすめ順</option>
-                <option value="price_asc">価格が安い順</option>
-                <option value="price_desc">価格が高い順</option>
-                <option value="prefecture">地域順 (北から)</option>
-              </select>
-            </div>
+            <Select 
+              icon={<FilterIcon className="w-5 h-5 text-gray-400" />} 
+              value={getCurrentFilter()} onChange={handleFilterChange}
+            >
+              <option value="all">すべての条件</option>
+              <option value="beginner">初心者おすすめ</option>
+              <option value="sweet">甘口</option>
+              <option value="dry">辛口</option>
+              <option value="gift">ギフト用</option>
+              <option value="daily">自分用</option>
+            </Select>
+
+            <Select 
+              icon={<SlidersHorizontal className="w-5 h-5 text-gray-400" />} 
+              value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}
+            >
+              <option value="newest">おすすめ順</option>
+              <option value="price_asc">価格が安い順</option>
+              <option value="price_desc">価格が高い順</option>
+              <option value="prefecture">地域順 (北から)</option>
+            </Select>
           </div>
         </div>
 
         {loading ? (
-          <p className="text-center py-20 text-gray-400 text-base">読み込み中...</p>
+          <p className="text-center py-20 text-gray-400">読み込み中...</p>
         ) : sakes.length === 0 ? (
           <div className="text-center py-32">
-            <p className="text-gray-400 mb-6 text-base">条件に合う日本酒が見つかりませんでした。</p>
-            <Link href="/list" className="text-indigo-600 underline text-base font-bold">条件をクリアして全件表示</Link>
+            <p className="text-gray-400 mb-6">条件に合う日本酒が見つかりませんでした。</p>
+            <Link href="/list" className="text-indigo-600 underline font-bold">条件をクリアして全件表示</Link>
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 md:gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 md:gap-8">
             {sakes.map((sake) => (
-              <Link href={`/list/${sake.id}`} key={sake.id} className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-lg transition group border border-gray-100 flex flex-col">
-                <div className="aspect-[4/5] bg-gray-100 relative flex items-center justify-center overflow-hidden">
-                  {sake.image_url ? (
-                    <Image 
-                      src={sake.image_url} 
-                      alt={sake.name} 
-                      fill
-                      className="object-cover mix-blend-multiply group-hover:scale-105 transition duration-500" 
-                    />
-                  ) : (
-                    <span className="text-gray-300 font-bold text-lg">No Image</span>
-                  )}
-                  <div className="absolute top-3 right-3 flex flex-col gap-2 items-end">
-                    {sake.taste && (
-                      <span className="bg-white/95 backdrop-blur text-xs px-3 py-1 rounded-lg shadow-sm text-gray-700 font-bold">{sake.taste}</span>
-                    )}
-                    <span className="bg-indigo-900/95 backdrop-blur text-sm px-3 py-1.5 rounded-lg shadow-sm text-white font-bold">¥{sake.price?.toLocaleString()}</span>
-                  </div>
-                </div>
-                <div className="p-5 flex-1 flex flex-col justify-end">
-                  <p className={`text-xs mb-2 font-bold leading-tight ${sortOrder === 'prefecture' ? 'text-indigo-600' : 'text-gray-600'}`}>
-                    {sake.brewery} / {sake.prefecture}
-                  </p>
-                  <h3 className="font-bold text-gray-900 text-sm leading-tight line-clamp-2 group-hover:text-indigo-700 transition">{sake.name}</h3>
-                </div>
-              </Link>
+              <SakeListCard key={sake.id} sake={sake} sortOrder={sortOrder} />
             ))}
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }
 
 export default function ListPage() {
   return (
-    <Suspense fallback={<div className="p-10 text-center text-base">Loading...</div>}>
+    <Suspense fallback={<div className="p-10 text-center">Loading...</div>}>
       <ListContent />
     </Suspense>
   );
 }
-
