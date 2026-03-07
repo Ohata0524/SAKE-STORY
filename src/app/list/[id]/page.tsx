@@ -11,14 +11,13 @@ import {
   Fish, Pizza, Utensils, Star, User, Quote 
 } from 'lucide-react';
 
-// アーキテクチャ刷新に基づいたパスエイリアス (@/) でのインポート
 import { supabase } from '@/infrastructure/supabase/supabaseClient';
 import { sakeRepository } from '@/infrastructure/repositories/sakeRepository';
 import { favoriteRepository } from '@/infrastructure/repositories/favoriteRepository';
 import { reviewSchema, type ReviewInput } from '@/domain/schemas/schemas';
 import { Sake } from '@/domain/models/sake';
 
-// --- 内部型定義 ---
+// --- 型定義：any を排除 ---
 type RecommendationLevel = 'double_circle' | 'circle' | 'triangle';
 
 interface Product {
@@ -103,7 +102,6 @@ const DrinkStyleItem = ({ icon, label, level }: { icon: React.ReactNode, label: 
   );
 };
 
-// --- レビューセクション ---
 const ReviewSection = ({ sakeId }: { sakeId: number }) => {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
@@ -225,14 +223,13 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
   const [user, setUser] = useState<{ id: string } | null>(null);
 
   const fetchSake = useCallback(async (isMounted: boolean) => {
-    const sakeId = Number(id); // 数値にキャスト
+    const sakeId = Number(id);
     if (isNaN(sakeId)) {
       if (isMounted) setLoading(false);
       return;
     }
 
     try {
-      // 修正：リポジトリの findById を呼び出し
       const data = await sakeRepository.findById(sakeId);
       const { data: authData } = await supabase.auth.getUser();
       const currentUser = authData.user;
@@ -241,13 +238,11 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
       setUser(currentUser);
 
       if (currentUser && data) {
-        // 修正：お気に入り確認
         const fav = await favoriteRepository.isFavorite(currentUser.id, sakeId);
         setIsFavorite(fav);
       }
 
       if (data) {
-        // UI用の型へ変換。Sakeモデルにフィールドを追加したのでエラーが消えます
         const mapped: Product = {
           id: data.id,
           name: data.name,
@@ -259,13 +254,13 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             priceRange: data.price ? `¥${data.price.toLocaleString()}` : 'ー',
           },
           recommendations: {
+            // any を排除して RecommendationLevel へキャスト
             cold: (data.rec_cold as RecommendationLevel) || 'circle',
             room: (data.rec_room as RecommendationLevel) || 'circle',
             hot: (data.rec_hot as RecommendationLevel) || 'circle',
           },
           pairings: [{ 
             name: data.pairing_name || 'おすすめ料理', 
-            // anyを排除
             type: (data.pairing_type as 'fish' | 'cheese' | 'meat' | 'other') || 'other' 
           }],
           officialUrl: data.official_url || `https://www.google.com/search?q=${encodeURIComponent(data.name)}`

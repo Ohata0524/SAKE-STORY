@@ -1,5 +1,5 @@
-import { supabase } from "../supabase/supabaseClient";
-import { Sake } from "../../domain/models/sake";
+import { supabase } from "@/infrastructure/supabase/supabaseClient";
+import { Sake } from "@/domain/models/sake";
 
 export const sakeRepository = {
   // 一覧取得
@@ -9,7 +9,7 @@ export const sakeRepository = {
     return data as Sake[];
   },
 
-  // IDで1件取得
+  // 修正ポイント：findById をオブジェクトの内部に配置
   async findById(id: number): Promise<Sake | null> {
     const { data, error } = await supabase
       .from('sakes')
@@ -21,3 +21,4 @@ export const sakeRepository = {
     return data as Sake;
   }
 };
+
