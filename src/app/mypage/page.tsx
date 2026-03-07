@@ -1,16 +1,20 @@
 'use client';
 
-/* eslint-disable @next/next/no-img-element */
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../lib/supabaseClient';
 import { User, Star, LogOut, Heart, Trash2, Edit, X, ArrowLeft } from 'lucide-react';
-import { myReviewListSchema, myFavoriteListSchema } from '../../src/lib/zod/schemas';
 
-// 型定義：Zodから推論
+// パスエイリアスを使用
+import { authRepository } from '@/infrastructure/repositories/authRepository';
+import { reviewRepository } from '@/infrastructure/repositories/reviewRepository';
+import { favoriteRepository } from '@/infrastructure/repositories/favoriteRepository';
+import { supabase } from '@/infrastructure/supabase/supabaseClient';
+import { myReviewListSchema, myFavoriteListSchema, myReviewSchema, myFavoriteSchema } from '@/domain/schemas/schemas';
+
+// 型定義
 import { z } from "zod";
-import { myReviewSchema, myFavoriteSchema } from '../../src/lib/zod/schemas';
 type ReviewWithSake = z.infer<typeof myReviewSchema>;
 type FavoriteWithSake = z.infer<typeof myFavoriteSchema>;
 
@@ -27,93 +31,65 @@ export default function MyPage() {
   const [editRating, setEditRating] = useState(0);
   const [editComment, setEditComment] = useState('');
 
-  // データ取得関数を useCallback で安定化
-  const fetchData = useCallback(async (userId: string, ignore: boolean) => {
-    // レビュー取得
-    const { data: reviewData, error: reviewError } = await supabase
-      .from('reviews')
-      .select('id, rating, comment, created_at, sakes (id, name, image_url)')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+  const fetchData = useCallback(async (userId: string, isMounted: boolean) => {
+    try {
+      // 修正ポイント：リポジトリ側の findByUserId が正しく定義されたことでエラーが消えます
+      const [reviewData, favData] = await Promise.all([
+        reviewRepository.findByUserId(userId),
+        favoriteRepository.findByUserId(userId)
+      ]);
 
-    if (!ignore) {
-      if (reviewError) {
-        console.error('レビュー取得エラー:', reviewError);
-      } else if (reviewData) {
-        const result = myReviewListSchema.safeParse(reviewData);
-        if (result.success) setReviews(result.data);
-      }
-    }
+      if (!isMounted) return;
 
-    // お気に入り取得
-    const { data: favData, error: favError } = await supabase
-      .from('favorites')
-      .select('id, created_at, sakes (id, name, image_url)')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
+      const reviewResult = myReviewListSchema.safeParse(reviewData);
+      if (reviewResult.success) setReviews(reviewResult.data);
 
-    if (!ignore) {
-      if (favError) {
-        console.error('お気に入り取得エラー:', favError);
-      } else if (favData) {
-        const result = myFavoriteListSchema.safeParse(favData);
-        if (result.success) setFavorites(result.data);
-      }
-      setLoading(false);
+      const favResult = myFavoriteListSchema.safeParse(favData);
+      if (favResult.success) setFavorites(favResult.data);
+
+    } catch (error) {
+      console.error('データ取得失敗:', error);
+    } finally {
+      if (isMounted) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    let ignore = false;
-
+    let isMounted = true;
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      
-      if (ignore) return;
-
+      if (!isMounted) return;
       if (!user) {
         router.push('/login');
         return;
       }
-
-      // setState を非同期の枠組みで実行して Cascading Renders を回避
       setUserEmail(user.email || 'ゲスト');
-      void fetchData(user.id, ignore);
+      void fetchData(user.id, isMounted);
     };
-
-    const timer = setTimeout(() => {
-      void init();
-    }, 0);
-
-    return () => {
-      ignore = true;
-      clearTimeout(timer);
-    };
+    init();
+    return () => { isMounted = false; };
   }, [router, fetchData]);
 
   const handleLogout = async () => {
     if (confirm('ログアウトしますか？')) {
-      await supabase.auth.signOut();
+      await authRepository.logout();
       router.push('/login');
     }
   };
 
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ja-JP');
+    return new Date(dateString).toLocaleDateString('ja-JP');
   };
 
   const handleDeleteReview = async (reviewId: number) => {
     if (!confirm('このレビューを削除してもよろしいですか？')) return;
-
-    const { error } = await supabase.from('reviews').delete().eq('id', reviewId);
-
-    if (error) {
-      alert('削除に失敗しました: ' + error.message);
-    } else {
+    try {
+      await reviewRepository.delete(reviewId);
       setReviews(prev => prev.filter(r => r.id !== reviewId));
       alert('レビューを削除しました');
+    } catch (e) {
+      alert('削除に失敗しました');
     }
   };
 
@@ -125,20 +101,14 @@ export default function MyPage() {
 
   const handleUpdateReview = async () => {
     if (!editingReview) return;
-
-    const { error } = await supabase
-      .from('reviews')
-      .update({ rating: editRating, comment: editComment })
-      .eq('id', editingReview.id);
-
-    if (error) {
-      alert('更新に失敗しました: ' + error.message);
-    } else {
+    try {
+      await reviewRepository.update(editingReview.id, editRating, editComment);
       alert('レビューを更新しました');
       setEditingReview(null);
-      // 再取得
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) void fetchData(user.id, false);
+      if (user) void fetchData(user.id, true);
+    } catch (e) {
+      alert('更新に失敗しました');
     }
   };
 
@@ -147,7 +117,6 @@ export default function MyPage() {
   return (
     <div className="min-h-screen bg-gray-50 md:py-6">
       <main className="w-full max-w-5xl bg-white min-h-screen md:min-h-fit md:h-auto shadow-lg relative flex flex-col md:rounded-2xl overflow-hidden mx-auto">
-        
         <header className="flex items-center justify-between p-5 md:p-6 border-b border-gray-100 bg-white sticky top-0 z-10">
           <Link href="/" className="p-2 -ml-2 hover:bg-gray-100 rounded-full transition group">
             <ArrowLeft className="w-5 h-5 text-gray-800 group-hover:text-indigo-600 transition" />
@@ -201,8 +170,12 @@ export default function MyPage() {
                     </div>
 
                     <Link href={`/list/${review.sakes?.id}`} className="flex flex-col md:flex-row items-start gap-5 md:gap-6 pr-0 md:pr-20">
-                      <div className="w-full md:w-24 md:h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-100 flex items-center justify-center aspect-square md:aspect-auto">
-                        {review.sakes?.image_url ? <img src={review.sakes.image_url} alt={review.sakes.name} className="w-full h-full object-cover mix-blend-multiply" /> : <span className="text-gray-400 text-xs">No Image</span>}
+                      <div className="w-full md:w-24 md:h-24 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 border border-gray-100 flex items-center justify-center relative aspect-square md:aspect-auto">
+                        {review.sakes?.image_url ? (
+                          <Image src={review.sakes.image_url} alt={review.sakes.name} fill className="object-cover mix-blend-multiply" />
+                        ) : (
+                          <span className="text-gray-400 text-xs">No Image</span>
+                        )}
                       </div>
                       <div className="flex-1 min-w-0 py-0.5 w-full">
                         <h3 className="font-bold text-lg md:text-xl text-gray-900 line-clamp-1 mb-2">{review.sakes?.name || '不明な銘柄'}</h3>
@@ -233,7 +206,11 @@ export default function MyPage() {
                   {favorites.map((fav) => (
                     <Link href={`/list/${fav.sakes?.id}`} key={fav.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 flex flex-col group">
                       <div className="aspect-square bg-gray-50 flex items-center justify-center relative p-3">
-                        {fav.sakes?.image_url ? <img src={fav.sakes.image_url} alt={fav.sakes.name} className="w-full h-full object-cover mix-blend-multiply transition duration-500 group-hover:scale-105" /> : <span className="text-gray-400 text-xs">No Image</span>}
+                        {fav.sakes?.image_url ? (
+                          <Image src={fav.sakes.image_url} alt={fav.sakes.name} fill className="object-cover mix-blend-multiply transition duration-500 group-hover:scale-105" />
+                        ) : (
+                          <span className="text-gray-400 text-xs">No Image</span>
+                        )}
                         <div className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full shadow-sm"><Heart className="w-4 h-4 fill-red-500 text-red-500" /></div>
                       </div>
                       <div className="p-3 md:p-4">
@@ -250,7 +227,7 @@ export default function MyPage() {
 
         {editingReview && (
           <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="bg-white w-full max-w-md rounded-2xl p-6 shadow-2xl relative">
+            <div className="bg-white w-full max-md rounded-2xl p-6 shadow-2xl relative">
               <button onClick={() => setEditingReview(null)} className="absolute top-4 right-4 p-1.5 hover:bg-gray-100 rounded-full text-gray-500"><X className="w-5 h-5" /></button>
               <h2 className="text-xl font-bold mb-6 text-gray-900">レビューを編集</h2>
               <div className="mb-6">

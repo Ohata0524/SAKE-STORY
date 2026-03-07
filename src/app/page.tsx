@@ -1,16 +1,15 @@
 'use client'; 
 
-/* eslint-disable @next/next/no-img-element */
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, User, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { supabase } from './lib/supabaseClient';
-import { sakeListSchema } from '../src/lib/zod/schemas'; 
 
-import { z } from "zod";
-import { sakeSchema } from '../src/lib/zod/schemas';
-type Sake = z.infer<typeof sakeSchema>;
+// アーキテクチャ刷新に基づいたパスエイリアス (@/) でのインポート
+import { sakeRepository } from '@/infrastructure/repositories/sakeRepository';
+import { sakeListSchema } from '@/domain/schemas/schemas';
+import { Sake } from '@/domain/models/sake';
 
 const FILTERS = [
   { id: 1, label: "初心者おすすめ" },
@@ -26,44 +25,41 @@ export default function Home() {
   const [sakes, setSakes] = useState<Sake[]>([]);
   const [keyword, setKeyword] = useState('');
 
-  const fetchRecommendations = useCallback(async (ignore: boolean) => {
-    const { data, error } = await supabase.from('sakes').select('*').limit(8);
-    
-    if (error || ignore) return;
+  // 修正：リポジトリパターンを適用し、ビジネスロジックを分離
+  const fetchRecommendations = useCallback(async (isMounted: boolean) => {
+    try {
+      const data = await sakeRepository.findAll();
+      
+      if (!isMounted) return;
 
-    if (data) {
       const result = sakeListSchema.safeParse(data);
-      if (result.success && !ignore) {
-        setSakes(result.data);
+      if (result.success) {
+        // トップ画面用に最大8件を表示
+        setSakes(result.data.slice(0, 8) as unknown as Sake[]);
       }
+    } catch (error) {
+      console.error('おすすめ取得失敗:', error);
     }
   }, []);
 
   useEffect(() => {
-    // 競合を防ぐためのフラグ（Defense in Depth の考え方）
-    let ignore = false;
+    let isMounted = true;
 
     const initialize = async () => {
-      // 1. 年齢確認のチェック
+      // 1. 年齢確認のチェック (localStorage)
       const isVerified = localStorage.getItem('ageVerified');
-      
-      // 非同期のコンテキストで実行することで Cascading Renders を回避
-      if (!isVerified && !ignore) {
+      if (!isVerified && isMounted) {
         setShowAgeModal(true);
       }
 
       // 2. おすすめの取得
-      await fetchRecommendations(ignore);
+      await fetchRecommendations(isMounted);
     };
 
-    // 実行を微小に遅らせて、最初のレンダリングサイクルから切り離す
-    const timer = setTimeout(() => {
-      void initialize();
-    }, 0);
+    void initialize();
 
     return () => {
-      ignore = true;
-      clearTimeout(timer);
+      isMounted = false;
     };
   }, [fetchRecommendations]);
 
@@ -97,6 +93,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-gray-50 pb-20">
+      {/* 年齢確認モーダル */}
       {showAgeModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
@@ -128,16 +125,24 @@ export default function Home() {
       </header>
 
       <div className="w-full max-w-6xl mx-auto px-6 md:px-12 mt-8">
+        {/* ヒーローセクション / 検索 */}
         <section className="rounded-[2rem] overflow-hidden relative bg-gradient-to-br from-indigo-500 to-purple-600 flex flex-col justify-center items-center text-white p-12 md:p-20 shadow-xl">
           <h2 className="text-3xl md:text-5xl font-serif text-center mb-10 leading-tight font-bold tracking-wider">
             物語で選ぶ、<br className="md:hidden" />運命の一本
           </h2>
           <form onSubmit={handleSearch} className="w-full max-w-3xl bg-white rounded-full flex items-center px-6 py-4 shadow-2xl transition-transform focus-within:scale-105">
             <Search className="text-gray-400 mr-4" size={24} />
-            <input type="text" placeholder="銘柄・酒造名で検索" value={keyword} onChange={(e) => setKeyword(e.target.value)} className="flex-grow text-base text-gray-700 outline-none placeholder-gray-400"/>
+            <input 
+              type="text" 
+              placeholder="銘柄・酒造名で検索" 
+              value={keyword} 
+              onChange={(e) => setKeyword(e.target.value)} 
+              className="flex-grow text-base text-gray-700 outline-none placeholder-gray-400"
+            />
           </form>
         </section>
 
+        {/* テーマ別ボタン */}
         <section className="mt-16">
           <div className="mb-6"><h3 className="text-2xl font-bold text-gray-800 border-l-8 border-indigo-500 pl-4">テーマで探す</h3></div>
           <div className="flex flex-wrap gap-4">
@@ -153,6 +158,7 @@ export default function Home() {
           </div>
         </section>
 
+        {/* おすすめグリッド */}
         <section className="mt-16">
           <div className="mb-8">
             <h3 className="text-2xl font-bold text-gray-800 border-l-8 border-indigo-500 pl-4">今月のおすすめ</h3>
@@ -163,11 +169,18 @@ export default function Home() {
             ) : (
               sakes.map((sake) => (
                 <Link href={`/list/${sake.id}`} key={sake.id} className="group cursor-pointer block">
-                  <div className="relative w-full aspect-[4/5] bg-gray-200 rounded-2xl mb-4 overflow-hidden shadow-md flex items-center justify-center group-hover:shadow-xl transition-all duration-300 transform group-hover:-translate-y-1">
+                  <div className="relative w-full aspect-[4/5] bg-gray-200 rounded-2xl mb-4 overflow-hidden shadow-md group-hover:shadow-xl transition-all duration-300 transform group-hover:-translate-y-1">
                     {sake.image_url ? (
-                      <img src={sake.image_url} alt={sake.name} className="w-full h-full object-cover" />
+                      <Image 
+                        src={sake.image_url} 
+                        alt={sake.name} 
+                        fill 
+                        className="object-cover" 
+                      />
                     ) : (
-                      <span className="text-gray-400 font-bold opacity-50 text-xl">No Image</span>
+                      <div className="w-full h-full flex items-center justify-center">
+                        <span className="text-gray-400 font-bold opacity-50 text-xl">No Image</span>
+                      </div>
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition"></div>
                   </div>
@@ -181,11 +194,12 @@ export default function Home() {
           </div>
         </section>
 
+        {/* 一覧ページへの導線 */}
         <section className="mt-20 mb-12">
           <Link href="/list" className="group block w-full bg-white border-4 border-dashed border-indigo-100 rounded-[2rem] p-12 text-center hover:border-indigo-400 hover:bg-indigo-50 transition duration-300">
             <h3 className="text-2xl font-bold text-indigo-900 mb-6 group-hover:text-indigo-700">あなただけの一本を見つける</h3>
             <span className="inline-flex items-center justify-center gap-3 bg-indigo-900 text-white px-10 py-4 rounded-full font-bold text-base shadow-lg group-hover:bg-indigo-700 group-hover:shadow-2xl transition transform group-hover:scale-105">
-              すべての日本酒を見る ({sakes.length > 0 ? sakes.length : '-'}種)
+              すべての日本酒を見る
               <ArrowRight className="w-5 h-5" />
             </span>
           </Link>
@@ -194,4 +208,3 @@ export default function Home() {
     </main>
   );
 }
-

@@ -2,43 +2,42 @@
 
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../lib/supabaseClient';
 import Link from 'next/link';
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { loginSchema, type LoginInput } from './../../src/lib/zod/schemas'; // パスは適宜調整してください
 
-export default function LoginPage() {
+// アーキテクチャ刷新に基づいたパスエイリアス (@/) でのインポート
+import { authRepository } from '@/infrastructure/repositories/authRepository';
+import { signupSchema, type SignupInput } from '@/domain/schemas/schemas';
+
+export default function SignupPage() {
   const router = useRouter();
 
+  // useFormの初期化：プロ仕様の isSubmitting を使用
   const {
     register,
     handleSubmit,
-    formState: { errors, isLoading },
-  } = useForm<LoginInput>({
-    resolver: zodResolver(loginSchema),
-    mode: "onBlur",
+    formState: { errors, isSubmitting },
+  } = useForm<SignupInput>({
+    resolver: zodResolver(signupSchema),
+    mode: "onBlur", 
   });
 
-  const onSubmit = async (data: LoginInput) => {
+  const onSubmit = async (values: SignupInput) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
-      });
+      // 直接 Supabase を呼ばず、認証リポジトリにお願いする
+      await authRepository.signUp(values);
 
-      if (error) throw error;
-
-      router.push('/');
-      router.refresh();
+      alert('アカウントを作成しました！ログインしてください。');
+      router.push('/login'); 
 
     } catch (error) {
-      console.error('Login failed', error);
-      let message = 'メールかパスワードが違います';
+      console.error('Signup failed', error);
+      let message = '不明なエラー';
       if (error instanceof Error) {
         message = error.message;
       }
-      alert('ログインに失敗しました: ' + message);
+      alert('登録に失敗しました: ' + message);
     }
   };
 
@@ -49,7 +48,7 @@ export default function LoginPage() {
           
           <div className="text-center mb-10">
             <h1 className="text-3xl font-bold tracking-wider text-indigo-950 font-serif">SAKE STORY</h1>
-            <h2 className="mt-4 text-xl font-bold text-gray-900">おかえりなさい</h2>
+            <h2 className="mt-4 text-xl font-bold text-gray-900">新規登録</h2>
           </div>
 
           <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
@@ -78,32 +77,37 @@ export default function LoginPage() {
               <input
                 {...register("password")}
                 type="password"
-                placeholder="••••••••"
+                placeholder="8文字以上"
                 className={`appearance-none block w-full px-4 py-3 border ${errors.password ? 'border-red-500' : 'border-gray-300'} rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-base`}
               />
               {errors.password && (
                 <p className="mt-2 text-sm text-red-600 font-bold">{errors.password.message}</p>
               )}
+              {!errors.password && (
+                <p className="mt-2 text-sm text-gray-500 font-medium">
+                  ※ 半角英数字8文字以上で入力してください
+                </p>
+              )}
             </div>
 
-            {/* ログインボタン */}
+            {/* 登録ボタン：isSubmitting による連打防止 */}
             <div className="pt-2">
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isSubmitting}
                 className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-md text-base font-bold text-white bg-indigo-900 hover:bg-indigo-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all transform active:scale-[0.98]
-                  ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+                  ${isSubmitting ? 'opacity-70 cursor-not-allowed' : ''}`}
               >
-                {isLoading ? 'ログイン中...' : 'ログイン'}
+                {isSubmitting ? '登録中...' : '登録する'}
               </button>
             </div>
           </form>
 
           <div className="mt-8 text-center">
             <p className="text-sm text-gray-600">
-              アカウントをお持ちでない方は{' '}
-              <Link href="/signup" className="font-bold text-indigo-900 hover:text-indigo-800 underline ml-1">
-                新規登録
+              すでにアカウントをお持ちの方は{' '}
+              <Link href="/login" className="font-bold text-indigo-900 hover:text-indigo-800 underline ml-1">
+                ログイン
               </Link>
             </p>
           </div>

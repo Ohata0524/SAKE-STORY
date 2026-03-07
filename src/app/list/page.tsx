@@ -1,17 +1,15 @@
 'use client';
 
-/* eslint-disable @next/next/no-img-element */
 import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { supabase } from '../lib/supabaseClient';
+import Image from 'next/image';
 import { ArrowLeft, Search, SlidersHorizontal, Filter } from 'lucide-react';
-import { sakeListSchema } from '../../src/lib/zod/schemas';
 
-// --- 型定義：Zodから自動生成 ---
-import { z } from "zod";
-import { sakeSchema } from '../../src/lib/zod/schemas';
-type Sake = z.infer<typeof sakeSchema>;
+// アーキテクチャ刷新に基づいたパスエイリアス (@/) でのインポート
+import { sakeRepository } from '@/infrastructure/repositories/sakeRepository';
+import { Sake } from '@/domain/models/sake';
+import { sakeListSchema } from '@/domain/schemas/schemas';
 
 const PREF_ORDER = [
   "北海道", "青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県",
@@ -58,73 +56,70 @@ function ListContent() {
     e.preventDefault();
     if (keyword.trim()) {
       router.push(`/list?q=${encodeURIComponent(keyword)}`);
+    } else {
+      router.push('/list');
     }
   };
 
-  const fetchSakes = useCallback(async (ignore: boolean) => {
+  const fetchSakes = useCallback(async (isMounted: boolean) => {
     setLoading(true);
     
     const q = searchParams.get('q');
     const taste = searchParams.get('taste');
 
-    let query = supabase.from('sakes').select('*');
-    if (taste) {
-      query = query.eq('taste', taste);
-    } else if (q) {
-      query = query.or(`name.ilike.%${q}%,brewery.ilike.%${q}%,description.ilike.%${q}%`);
-    }
+    try {
+      // 修正：直接 Supabase を呼ばず、リポジトリを経由する
+      const data = await sakeRepository.findAll();
 
-    if (sortOrder === 'price_asc') {
-      query = query.order('price', { ascending: true });
-    } else if (sortOrder === 'price_desc') {
-      query = query.order('price', { ascending: false });
-    } else if (sortOrder !== 'prefecture') {
-      query = query.order('id', { ascending: false });
-    }
+      if (!isMounted) return;
 
-    const { data, error } = await query;
+      // 検索・フィルタリング処理
+      let filteredData = data;
+      if (taste) {
+        filteredData = data.filter(s => s.taste === taste);
+      } else if (q) {
+        const lowerQ = q.toLowerCase();
+        filteredData = data.filter(s => 
+          s.name.toLowerCase().includes(lowerQ) || 
+          s.brewery.toLowerCase().includes(lowerQ)
+        );
+      }
 
-    if (ignore) return;
-
-    if (error) {
-      console.error('検索エラー:', error);
-      setSakes([]);
-    } else if (data) {
-      const zodResult = sakeListSchema.safeParse(data);
+      // Zodでの検品（型の不整合を解消するために unknown を経由してキャストします）
+      const zodResult = sakeListSchema.safeParse(filteredData);
+      
       if (zodResult.success) {
-        const result = [...zodResult.data];
-        if (sortOrder === 'prefecture') {
+        // ESLint警告に対応し、const を使用
+        const result = [...zodResult.data] as unknown as Sake[];
+        
+        // ソート処理
+        if (sortOrder === 'price_asc') {
+          result.sort((a, b) => (a.price || 0) - (b.price || 0));
+        } else if (sortOrder === 'price_desc') {
+          result.sort((a, b) => (b.price || 0) - (a.price || 0));
+        } else if (sortOrder === 'prefecture') {
           result.sort((a, b) => {
             const indexA = PREF_ORDER.indexOf(a.prefecture || "");
             const indexB = PREF_ORDER.indexOf(b.prefecture || "");
             return (indexA === -1 ? 999 : indexA) - (indexB === -1 ? 999 : indexB);
           });
         }
+        
         setSakes(result);
-      } else {
-        console.error('データ形式エラー:', zodResult.error.format());
       }
+    } catch (error) {
+      console.error('取得エラー:', error);
+    } finally {
+      if (isMounted) setLoading(false);
     }
-    setLoading(false);
   }, [searchParams, sortOrder]);
 
   useEffect(() => {
-    let ignore = false;
-
-    // setKeyword と fetchSakes を非同期の setTimeout にまとめる
-    // これで画像 image_98715e.png の cascading renders エラーを解消します
-    const timer = setTimeout(() => {
-      if (!ignore) {
-        const q = searchParams.get('q');
-        setKeyword(q || ''); // ← ここを非同期にしました
-        void fetchSakes(ignore);
-      }
-    }, 0);
-
-    return () => {
-      ignore = true;
-      clearTimeout(timer);
-    };
+    let isMounted = true;
+    const q = searchParams.get('q');
+    setKeyword(q || '');
+    void fetchSakes(isMounted);
+    return () => { isMounted = false; };
   }, [fetchSakes, searchParams]);
 
   return (
@@ -201,11 +196,15 @@ function ListContent() {
               <Link href={`/list/${sake.id}`} key={sake.id} className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-lg transition group border border-gray-100 flex flex-col">
                 <div className="aspect-[4/5] bg-gray-100 relative flex items-center justify-center overflow-hidden">
                   {sake.image_url ? (
-                    <img src={sake.image_url} alt={sake.name} className="w-full h-full object-cover mix-blend-multiply group-hover:scale-105 transition duration-500" />
+                    <Image 
+                      src={sake.image_url} 
+                      alt={sake.name} 
+                      fill
+                      className="object-cover mix-blend-multiply group-hover:scale-105 transition duration-500" 
+                    />
                   ) : (
                     <span className="text-gray-300 font-bold text-lg">No Image</span>
                   )}
-                  {/* Zodに taste を追加したので、画像 image_986c82.png のエラーが消えます */}
                   <div className="absolute top-3 right-3 flex flex-col gap-2 items-end">
                     {sake.taste && (
                       <span className="bg-white/95 backdrop-blur text-xs px-3 py-1 rounded-lg shadow-sm text-gray-700 font-bold">{sake.taste}</span>
