@@ -10,9 +10,8 @@ import {
 } from 'lucide-react';
 import { useProductDetail } from '@/hooks/useProductDetail';
 import { Button } from '@/components/atoms/Button';
+import { getDisplayImageUrl } from '@/app/lib/imageUtils';
 
-// --- 型定義 ---
-// 修正：anyを排除し、Next.jsのビルドエラーを防ぐ
 type RecommendationLevel = 'double_circle' | 'circle' | 'triangle';
 
 interface DrinkStyleItemProps {
@@ -21,11 +20,7 @@ interface DrinkStyleItemProps {
   level: RecommendationLevel;
 }
 
-// --- サブコンポーネント ---
 
-/**
- * おすすめ度の記号を表示するコンポーネント
- */
 const LevelIcon = ({ level }: { level: RecommendationLevel }) => {
   switch (level) {
     case 'double_circle': 
@@ -39,14 +34,8 @@ const LevelIcon = ({ level }: { level: RecommendationLevel }) => {
   }
 };
 
-/**
- * 飲み方（温度帯）ごとの推奨度を表示するカード
- * 修正：typeを受け取り内部でアイコンを判定することで、型エラー を解消
- */
 const DrinkStyleItem = ({ type, label, level }: DrinkStyleItemProps) => {
   const isBest = level === 'double_circle';
-  
-  // type に基づいて lucide-react のアイコンを選択
   const icons = {
     cold: <Snowflake className="w-8 h-8 text-blue-400" />,
     room: <Thermometer className="w-8 h-8 text-green-600" />,
@@ -65,8 +54,6 @@ const DrinkStyleItem = ({ type, label, level }: DrinkStyleItemProps) => {
     </div>
   );
 };
-
-// --- メインコンポーネント ---
 
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { sake, loading, isFavorite, toggleFavorite } = useProductDetail(params);
@@ -89,11 +76,11 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     );
   }
 
+
+  const displayImageUrl = getDisplayImageUrl(sake.image_url, sake.name);
+
   return (
     <div className="page-container">
-      {/* bg-surface-card, rounded-sake を適用。
-          Vercelで bg-surface-base がエラーになる場合は tailwind.config.ts をルートに移動してください 
-      */}
       <main className="w-full max-w-6xl mx-auto bg-surface-card min-h-screen md:my-8 md:rounded-sake md:shadow-2xl pb-32 relative overflow-hidden">
         
         {/* ヘッダー */}
@@ -116,11 +103,12 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
           <div className="lg:col-span-5">
             <div className="aspect-square bg-surface-base rounded-sake overflow-hidden relative border border-gray-100 shadow-inner">
               <Image 
-                src={sake.image_url || '/no-image.png'} 
+                src={displayImageUrl} 
                 alt={sake.name} 
                 fill 
                 className="object-cover mix-blend-multiply transition duration-700 hover:scale-105"
                 priority
+                unoptimized
               />
             </div>
           </div>

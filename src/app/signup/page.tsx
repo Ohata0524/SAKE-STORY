@@ -10,7 +10,6 @@ export default function SignupPage() {
   const { register, handleSubmit, errors, isSubmitting } = useSignup();
 
   return (
-    /* bg-gray-50 を bg-surface-base へ */
     <div className="min-h-screen bg-surface-base flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-lg">
         <div className="bg-surface-card py-10 px-6 shadow-xl sm:rounded-sake sm:px-12 border border-gray-100">
