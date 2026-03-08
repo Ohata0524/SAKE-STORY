@@ -20,6 +20,7 @@ export default function MyPage() {
   return (
     <div className="page-container md:py-6">
       <main className="w-full max-w-5xl bg-surface-card min-h-screen md:min-h-fit md:rounded-sake shadow-lg mx-auto overflow-hidden flex flex-col">
+        {/* ヘッダー */}
         <header className="flex items-center justify-between p-5 border-b border-gray-100 bg-surface-card">
           <Link href="/" className="p-2 hover:bg-surface-base rounded-full transition group">
             <ArrowLeft className="w-5 h-5 text-gray-800 group-hover:text-brand-accent transition" />
@@ -30,6 +31,7 @@ export default function MyPage() {
           </button>
         </header>
 
+        {/* プロフィール */}
         <section className="p-8 flex items-center gap-6 border-b border-gray-100 bg-surface-card">
           <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center border-2 border-indigo-100 shadow-sm">
             <User className="w-10 h-10 text-indigo-300" />
@@ -40,6 +42,7 @@ export default function MyPage() {
           </div>
         </section>
 
+        {/* タブ */}
         <div className="flex border-b border-gray-200 bg-surface-card">
           {(['reviews', 'favorites'] as const).map((tab) => (
             <button 
@@ -55,6 +58,7 @@ export default function MyPage() {
           ))}
         </div>
 
+        {/* コンテンツエリア */}
         <div className="flex-1 bg-surface-base p-6">
           {activeTab === 'reviews' ? (
             <div className="space-y-4 max-w-4xl mx-auto">
@@ -64,7 +68,7 @@ export default function MyPage() {
                   <p className="text-base font-medium">まだレビュー履歴はありません</p>
                 </div>
               ) : (
-                /* 修正：mapの閉じ括弧を修正 */
+                /* 構文修正：mapの閉じ括弧を確実に対応させた */
                 reviews.map((r) => (
                   <ReviewCard 
                     key={r.id} review={r} 
@@ -88,6 +92,7 @@ export default function MyPage() {
           )}
         </div>
 
+        {/* 編集モーダル */}
         {editingReview && (
           <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
             <div className="bg-surface-card w-full max-w-md rounded-sake p-8 relative shadow-2xl text-center">
@@ -95,7 +100,7 @@ export default function MyPage() {
               <h2 className="text-xl font-bold mb-6 text-brand-primary font-serif">レビューを編集</h2>
               <div className="flex gap-2 mb-8 justify-center">
                 {[1, 2, 3, 4, 5].map(n => (
-                  <button key={n} onClick={() => setEditRating(n)} className="transform transition hover:scale-110">
+                  <button key={n} onClick={() => setEditRating(n)} className="transform transition hover:scale-110" type="button">
                     <Star className={`w-10 h-10 ${n <= editRating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200'}`} />
                   </button>
                 ))}
