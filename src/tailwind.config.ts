@@ -9,24 +9,22 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // 意味に基づいた色の定義
         brand: {
-          primary: '#1e1b4b',   // 元の indigo-900
-          secondary: '#312e81', // 明るめの紺
-          accent: '#4f46e5',    // アクセントの紫
+          primary: '#1e1b4b',
+          accent: '#6366f1',
+          highlight: '#4f46e5',
         },
+        // ここを確実に定義することで bg-surface-base が使えるようになります
         surface: {
-          base: '#f9fafb',      // 背景色 gray-50
-          card: '#ffffff',      // カード等の白
-          dark: '#0f172a',      // モーダル背景等の濃い色
+          base: '#f9fafb',
+          card: '#ffffff',
+          dark: '#0f172a',
         }
       },
       borderRadius: {
-        // あなたが多用している 2rem を「sake」という名前で共通化
         'sake': '2rem',
       },
       fontFamily: {
-        // セリフ体（明朝体系）を「brand」として定義
         brand: ['var(--font-serif)', 'serif'],
       },
     },
