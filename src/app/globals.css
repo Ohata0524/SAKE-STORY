@@ -1,10 +1,13 @@
+/* 1行目に追加：ルートにある設定ファイルを明示的に読み込む */
+@config "../../tailwind.config.ts";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* カスタムクラスは必ず末尾に、かつ @layer components の中で定義する */
 @layer components {
   .page-container {
+    /* これで bg-surface-base が認識されます */
     @apply min-h-screen bg-surface-base pb-20;
   }
 
