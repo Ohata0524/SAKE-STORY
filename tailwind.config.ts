@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+
 const config: Config = {
   content: [
     "./src/**/*.{js,ts,jsx,tsx,mdx}",
@@ -7,7 +8,7 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          primary: '#1e1b4b',
+          primary: '#1e1b4b', // スペースを除去
           accent: '#6366f1',
           highlight: '#4f46e5',
         },

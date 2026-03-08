@@ -1,13 +1,13 @@
-/* 1行目に追加：ルートにある設定ファイルを明示的に読み込む */
+/* 1. Tailwindの基本エンジンをインポート */
+@import "tailwindcss";
+
+/* 2. ルートにある設定ファイルを「絶対パス」に近い形で強制リンク */
 @config "../../tailwind.config.ts";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
+/* 3. カスタムクラスの定義 */
 @layer components {
   .page-container {
-    /* これで bg-surface-base が認識されます */
+    /* @config でリンクしたことで、カスタム色（surface-base）も標準クラス（pb-20）も認識されます */
     @apply min-h-screen bg-surface-base pb-20;
   }
 
