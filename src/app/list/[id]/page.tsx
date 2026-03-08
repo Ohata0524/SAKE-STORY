@@ -11,7 +11,7 @@ import { Button } from '@/components/atoms/Button';
 // 修正：anyを排除するための型定義
 type RecommendationLevel = 'double_circle' | 'circle' | 'triangle';
 
-// 修正：typeを受け取り内部でアイコンを出すよう修正
+// 修正：typeを受け取り内部でアイコンを表示する形式に変更
 const DrinkStyleItem = ({ 
   type, 
   label, 
@@ -42,7 +42,7 @@ const DrinkStyleItem = ({
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { sake, loading, isFavorite, toggleFavorite } = useProductDetail(params);
 
-  if (loading) return <div className="page-container flex items-center justify-center font-bold text-gray-400">読み込み中...</div>;
+  if (loading) return <div className="page-container flex items-center justify-center font-bold text-gray-400">物語を読み込み中...</div>;
   if (!sake) return <div className="page-container flex items-center justify-center text-gray-400">見つかりませんでした</div>;
 
   return (
@@ -61,12 +61,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 p-6 lg:p-12">
           <div className="lg:col-span-5">
             <div className="aspect-square bg-surface-base rounded-sake overflow-hidden relative border border-gray-100">
-              <Image 
-                src={sake.image_url || '/no-image.png'} 
-                alt={sake.name} 
-                fill 
-                className="object-cover mix-blend-multiply transition duration-700 hover:scale-105" 
-              />
+              <Image src={sake.image_url || '/no-image.png'} alt={sake.name} fill className="object-cover mix-blend-multiply transition duration-700 hover:scale-105" />
             </div>
           </div>
 
@@ -83,14 +78,10 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             <section className="relative bg-white border-4 border-brand-primary rounded-sake p-8 md:p-12 shadow-xl isolate">
               <div className="absolute -right-10 -bottom-10 text-indigo-50 -z-10 rotate-12"><BookOpen size={240} /></div>
               <div className="flex flex-col gap-5 mb-8">
-                <div className="self-start bg-brand-primary text-white text-xs font-bold px-5 py-2 rounded-full tracking-widest flex items-center gap-2">
-                  <BookOpen className="w-4 h-4" /> SAKE STORY
-                </div>
+                <div className="self-start bg-brand-primary text-white text-xs font-bold px-5 py-2 rounded-full tracking-widest flex items-center gap-2"><BookOpen className="w-4 h-4" /> SAKE STORY</div>
                 <h3 className="font-serif font-bold text-2xl border-b-4 border-brand-accent/10 pb-5 font-brand">物語 - この一本が生まれるまで</h3>
               </div>
-              <div className="prose prose-slate max-w-none font-serif leading-relaxed text-gray-900">
-                <ReactMarkdown>{sake.description || ''}</ReactMarkdown>
-              </div>
+              <div className="prose prose-slate max-w-none font-serif leading-relaxed text-gray-900"><ReactMarkdown>{sake.description || ''}</ReactMarkdown></div>
               <div className="flex justify-end mt-4"><Quote className="w-10 h-10 text-brand-accent/20 rotate-180" /></div>
             </section>
 
@@ -98,7 +89,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               <div className="bg-surface-card p-6 rounded-sake border border-gray-100 shadow-sm text-center">
                 <h4 className="font-bold text-brand-primary mb-5 border-b border-brand-accent/10 pb-3 font-brand">おすすめの温度帯</h4>
                 <div className="flex gap-2">
-                  {/* 修正：anyを排除し適切なキャストを行う */}
+                  {/* 修正：typeを渡し、as any を排除 */}
                   <DrinkStyleItem type="cold" label="冷酒" level={(sake.rec_cold as RecommendationLevel) || 'circle'} />
                   <DrinkStyleItem type="room" label="常温" level={(sake.rec_room as RecommendationLevel) || 'circle'} />
                   <DrinkStyleItem type="hot" label="熱燗" level={(sake.rec_hot as RecommendationLevel) || 'circle'} />
@@ -111,9 +102,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               </div>
             </div>
 
-            <div className="pt-6">
-              <Button onClick={() => window.open(sake.official_url || '', '_blank')}>公式サイトへ移動</Button>
-            </div>
+            <div className="pt-6"><Button onClick={() => window.open(sake.official_url || '', '_blank')}>公式サイトへ移動</Button></div>
           </div>
         </div>
       </main>

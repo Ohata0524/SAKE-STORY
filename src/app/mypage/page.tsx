@@ -15,12 +15,11 @@ export default function MyPage() {
     handleLogout, handleDeleteReview, handleUpdateReview
   } = useMyPage();
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">読み込み中...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-gray-400">読み込み中...</div>;
 
   return (
     <div className="page-container md:py-6">
       <main className="w-full max-w-5xl bg-surface-card min-h-screen md:min-h-fit md:rounded-sake shadow-lg mx-auto overflow-hidden flex flex-col">
-        {/* ヘッダー */}
         <header className="flex items-center justify-between p-5 border-b border-gray-100 bg-surface-card">
           <Link href="/" className="p-2 hover:bg-surface-base rounded-full transition group">
             <ArrowLeft className="w-5 h-5 text-gray-800 group-hover:text-brand-accent transition" />
@@ -31,7 +30,6 @@ export default function MyPage() {
           </button>
         </header>
 
-        {/* プロフィール */}
         <section className="p-8 flex items-center gap-6 border-b border-gray-100 bg-surface-card">
           <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center border-2 border-indigo-100 shadow-sm">
             <User className="w-10 h-10 text-indigo-300" />
@@ -42,7 +40,6 @@ export default function MyPage() {
           </div>
         </section>
 
-        {/* タブ切り替え */}
         <div className="flex border-b border-gray-200 bg-surface-card">
           {(['reviews', 'favorites'] as const).map((tab) => (
             <button 
@@ -58,7 +55,6 @@ export default function MyPage() {
           ))}
         </div>
 
-        {/* コンテンツエリア */}
         <div className="flex-1 bg-surface-base p-6">
           {activeTab === 'reviews' ? (
             <div className="space-y-4 max-w-4xl mx-auto">
@@ -68,7 +64,7 @@ export default function MyPage() {
                   <p className="text-base font-medium">まだレビュー履歴はありません</p>
                 </div>
               ) : (
-                /* 修正：mapの閉じ括弧を修正 */
+                /* 修正ポイント：mapの閉じ括弧を修正しました */
                 reviews.map((r) => (
                   <ReviewCard 
                     key={r.id} review={r} 
@@ -92,7 +88,6 @@ export default function MyPage() {
           )}
         </div>
 
-        {/* 編集モーダル */}
         {editingReview && (
           <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
             <div className="bg-surface-card w-full max-w-md rounded-sake p-8 relative shadow-2xl text-center">
@@ -100,17 +95,12 @@ export default function MyPage() {
               <h2 className="text-xl font-bold mb-6 text-brand-primary font-serif">レビューを編集</h2>
               <div className="flex gap-2 mb-8 justify-center">
                 {[1, 2, 3, 4, 5].map(n => (
-                  <button key={n} onClick={() => setEditRating(n)} className="transform transition hover:scale-110" type="button">
+                  <button key={n} type="button" onClick={() => setEditRating(n)} className="transform transition hover:scale-110">
                     <Star className={`w-10 h-10 ${n <= editRating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200'}`} />
                   </button>
                 ))}
               </div>
-              <textarea 
-                value={editComment} 
-                onChange={e => setEditComment(e.target.value)} 
-                className="w-full border border-gray-200 rounded-xl p-4 h-32 mb-8 focus:ring-2 focus:ring-brand-accent focus:outline-none transition" 
-                placeholder="感想を入力してください..."
-              />
+              <textarea value={editComment} onChange={e => setEditComment(e.target.value)} className="w-full border border-gray-200 rounded-xl p-4 h-32 mb-8 focus:ring-2 focus:ring-brand-accent focus:outline-none transition" placeholder="感想を入力してください..." />
               <div className="flex gap-4">
                 <Button variant="outline" onClick={() => setEditingReview(null)}>キャンセル</Button>
                 <Button onClick={handleUpdateReview}>更新する</Button>
