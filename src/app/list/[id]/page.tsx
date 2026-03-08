@@ -1,364 +1,209 @@
 'use client';
 
-import React, { useState, useEffect, use, useCallback } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import ReactMarkdown from 'react-markdown';
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { 
-  ArrowLeft, Heart, BookOpen, Snowflake, Thermometer, Flame, 
-  Utensils, Star, User, Quote 
+  ArrowLeft, Heart, BookOpen, Utensils, Quote, 
+  Snowflake, Thermometer, Flame 
 } from 'lucide-react';
-
-import { supabase } from '@/infrastructure/supabase/supabaseClient';
-import { sakeRepository } from '@/infrastructure/repositories/sakeRepository';
-import { favoriteRepository } from '@/infrastructure/repositories/favoriteRepository';
-import { reviewSchema, type ReviewInput } from '@/domain/schemas/schemas';
-import { Sake } from '@/domain/models/sake';
+import { useProductDetail } from '@/hooks/useProductDetail';
 import { Button } from '@/components/atoms/Button';
 
 // --- 型定義 ---
+// 修正：anyを排除し、Next.jsのビルドエラーを防ぐ
 type RecommendationLevel = 'double_circle' | 'circle' | 'triangle';
 
-interface Product {
-  id: number;
-  name: string;
-  imageUrl: string;
-  tags: {
-    taste: string;
-    region: string;
-    priceRange: string;
-  };
-  storyContent: string;
-  recommendations: {
-    cold: RecommendationLevel;
-    room: RecommendationLevel;
-    hot: RecommendationLevel;
-  };
-  pairings: {
-    name: string;
-    type: 'fish' | 'cheese' | 'meat' | 'other';
-  }[];
-  officialUrl: string;
-}
-
-interface Review {
-  id: number;
-  rating: number;
-  comment: string;
-  created_at: string;
-  user_id: string;
-  user_name?: string;
+interface DrinkStyleItemProps {
+  type: 'cold' | 'room' | 'hot';
+  label: string;
+  level: RecommendationLevel;
 }
 
 // --- サブコンポーネント ---
 
+/**
+ * おすすめ度の記号を表示するコンポーネント
+ */
 const LevelIcon = ({ level }: { level: RecommendationLevel }) => {
   switch (level) {
-    /* text-brand-primary を適用 */
-    case 'double_circle': return <span className="text-3xl font-black text-brand-primary block mt-2">◎</span>;
-    case 'circle': return <span className="text-2xl font-bold text-gray-400 block mt-2">○</span>;
-    case 'triangle': return <span className="text-xl text-gray-300 block mt-2">△</span>;
-    default: return null;
+    case 'double_circle': 
+      return <span className="text-3xl font-black text-brand-primary block mt-2">◎</span>;
+    case 'circle': 
+      return <span className="text-2xl font-bold text-gray-400 block mt-2">○</span>;
+    case 'triangle': 
+      return <span className="text-xl text-gray-300 block mt-2">△</span>;
+    default: 
+      return null;
   }
 };
 
-const StorySection = ({ markdown }: { markdown: string }) => (
-  /* border-brand-primary, rounded-sake を適用 */
-  <section className="relative bg-surface-card border-4 border-brand-primary rounded-sake p-8 md:p-12 shadow-xl overflow-hidden isolate">
-    <div className="absolute -right-10 -bottom-10 text-indigo-50 opacity-60 -z-10 transform rotate-12">
-      <BookOpen size={240} />
-    </div>
-    <div className="flex flex-col gap-5 mb-8 relative z-10">
-      <div className="self-start bg-brand-primary text-white text-base font-bold px-5 py-2 rounded-full tracking-widest flex items-center gap-2 shadow-md">
-        <BookOpen className="w-5 h-5" />
-        SAKE STORY
-      </div>
-      <h3 className="font-serif font-bold text-2xl md:text-3xl text-gray-900 border-b-4 border-brand-accent/20 pb-5 leading-tight">
-        物語 - この一本が生まれるまで
-      </h3>
-    </div>
-    <div className="prose prose-lg prose-slate max-w-none font-serif">
-      <ReactMarkdown
-        components={{
-          p: ({ ...props }) => <p className="mb-8 leading-9 tracking-wide text-lg font-medium text-gray-900" {...props} />
-        }}
-      >
-        {markdown}
-      </ReactMarkdown>
-    </div>
-    <div className="flex justify-end mt-2">
-      <Quote className="w-10 h-10 text-brand-accent/30 transform rotate-180" />
-    </div>
-  </section>
-);
-
-const DrinkStyleItem = ({ icon, label, level }: { icon: React.ReactNode, label: string, level: RecommendationLevel }) => {
+/**
+ * 飲み方（温度帯）ごとの推奨度を表示するカード
+ * 修正：typeを受け取り内部でアイコンを判定することで、型エラー を解消
+ */
+const DrinkStyleItem = ({ type, label, level }: DrinkStyleItemProps) => {
   const isBest = level === 'double_circle';
+  
+  // type に基づいて lucide-react のアイコンを選択
+  const icons = {
+    cold: <Snowflake className="w-8 h-8 text-blue-400" />,
+    room: <Thermometer className="w-8 h-8 text-green-600" />,
+    hot: <Flame className="w-8 h-8 text-red-500" />,
+  };
+
   return (
-    /* bg-brand-primary/5, border-brand-accent/20 を適用 */
-    <div className={`flex-1 flex flex-col items-center justify-center p-4 rounded-xl transition-all ${isBest ? 'bg-brand-primary/5 border-2 border-brand-accent/20' : ''}`}>
-      {icon}
-      <span className={`text-base font-bold mt-2 ${isBest ? 'text-brand-primary' : 'text-gray-600'}`}>{label}</span>
+    <div className={`flex-1 flex flex-col items-center justify-center p-4 rounded-xl transition-all ${
+      isBest ? 'bg-brand-primary/5 border-2 border-brand-accent/20' : 'bg-white border border-gray-100'
+    }`}>
+      {icons[type]}
+      <span className={`text-base font-bold mt-2 ${isBest ? 'text-brand-primary' : 'text-gray-600'}`}>
+        {label}
+      </span>
       <LevelIcon level={level} />
     </div>
   );
 };
 
-const ReviewSection = ({ sakeId }: { sakeId: number }) => {
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [user, setUser] = useState<{ id: string; email?: string } | null>(null);
+// --- メインコンポーネント ---
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    reset,
-    formState: { isSubmitting },
-  } = useForm<ReviewInput>({
-    resolver: zodResolver(reviewSchema),
-    defaultValues: { rating: 5, comment: "" },
-  });
-
-  const currentRating = watch("rating");
-
-  const fetchReviews = useCallback(async (isMounted: boolean) => {
-    const { data, error } = await supabase
-      .from('reviews')
-      .select('*')
-      .eq('sake_id', sakeId)
-      .order('created_at', { ascending: false });
-
-    if (isMounted) {
-      if (error) console.error('レビュー取得失敗:', error);
-      else setReviews(data || []);
-    }
-  }, [sakeId]);
-
-  useEffect(() => {
-    let isMounted = true;
-    const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (isMounted) {
-        setUser(user);
-        void fetchReviews(isMounted);
-      }
-    };
-    init();
-    return () => { isMounted = false; };
-  }, [sakeId, fetchReviews]);
-
-  const onSubmit = async (data: ReviewInput) => {
-    if (!user) return alert('ログインしてください');
-    const userName = user.email ? user.email.split('@')[0] : '名無し';
-    
-    const { error } = await supabase.from('reviews').insert({
-      sake_id: sakeId,
-      user_id: user.id,
-      user_name: userName,
-      rating: data.rating,
-      comment: data.comment
-    });
-
-    if (!error) {
-      alert('レビューを投稿しました！');
-      reset();
-      void fetchReviews(true);
-    }
-  };
-
-  return (
-    <section className="flex flex-col items-center w-full pt-12 border-t border-gray-200 mt-10">
-      <h3 className="font-brand font-bold text-2xl mb-8 text-brand-primary">みんなのレビュー</h3>
-      <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-        {reviews.length === 0 ? (
-          /* bg-surface-base, rounded-sake を適用 */
-          <div className="md:col-span-2 text-center text-gray-400 py-12 bg-surface-base rounded-sake">
-            まだレビューはありません。
-          </div>
-        ) : (
-          reviews.map((review) => (
-            <div key={review.id} className="bg-surface-base p-6 rounded-sake shadow-sm">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-12 h-12 bg-surface-card rounded-full flex items-center justify-center shadow-sm">
-                  <User className="w-6 h-6 text-gray-500" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-gray-700">{review.user_name || '日本酒好きさん'}</p>
-                  <div className="flex text-yellow-500 mt-1">
-                    {[...Array(5)].map((_, i) => (
-                      <Star key={i} className={`w-4 h-4 ${i < review.rating ? 'fill-current' : 'text-gray-300'}`} />
-                    ))}
-                  </div>
-                </div>
-              </div>
-              <p className="text-gray-900 leading-relaxed font-medium">{review.comment}</p>
-            </div>
-          ))
-        )}
-      </div>
-      {user && (
-        /* bg-surface-card, rounded-sake を適用 */
-        <form onSubmit={handleSubmit(onSubmit)} className="w-full max-w-3xl bg-surface-card p-8 rounded-sake border border-gray-200 shadow-md">
-          <p className="font-bold text-lg mb-4 text-brand-primary">レビューを書く</p>
-          <div className="flex gap-3 mb-6">
-            {[1, 2, 3, 4, 5].map((num) => (
-              <button key={num} type="button" onClick={() => setValue("rating", num)} className="hover:scale-110 transition">
-                <Star className={`w-10 h-10 ${num <= currentRating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
-              </button>
-            ))}
-          </div>
-          <textarea {...register("comment")} className="w-full border border-gray-300 p-5 rounded-2xl mb-6 min-h-[120px] focus:ring-2 focus:ring-brand-accent focus:outline-none transition-all" placeholder="感想を教えてください..." />
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? '投稿中...' : '投稿する'}
-          </Button>
-        </form>
-      )}
-    </section>
-  );
-};
-
-// --- メインページ ---
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isFavorite, setIsFavorite] = useState(false);
-  const [user, setUser] = useState<{ id: string } | null>(null);
+  const { sake, loading, isFavorite, toggleFavorite } = useProductDetail(params);
 
-  const fetchSake = useCallback(async (isMounted: boolean) => {
-    const sakeId = Number(id);
-    if (isNaN(sakeId)) {
-      if (isMounted) setLoading(false);
-      return;
-    }
+  // ローディング状態
+  if (loading) {
+    return (
+      <div className="page-container flex items-center justify-center font-bold text-gray-400">
+        物語を読み込み中...
+      </div>
+    );
+  }
 
-    try {
-      const data = await sakeRepository.findById(sakeId);
-      const { data: authData } = await supabase.auth.getUser();
-      const currentUser = authData.user;
-
-      if (!isMounted) return;
-      setUser(currentUser);
-
-      if (currentUser && data) {
-        const fav = await favoriteRepository.isFavorite(currentUser.id, sakeId);
-        setIsFavorite(fav);
-      }
-
-      if (data) {
-        const mapped: Product = {
-          id: data.id,
-          name: data.name,
-          imageUrl: data.image_url || 'https://placehold.co/800x800?text=No+Image',
-          storyContent: data.description || '説明文がありません。',
-          tags: {
-            taste: data.taste || 'ー',
-            region: data.prefecture || 'ー',
-            priceRange: data.price ? `¥${data.price.toLocaleString()}` : 'ー',
-          },
-          recommendations: {
-            cold: (data.rec_cold as RecommendationLevel) || 'circle',
-            room: (data.rec_room as RecommendationLevel) || 'circle',
-            hot: (data.rec_hot as RecommendationLevel) || 'circle',
-          },
-          pairings: [{ 
-            name: data.pairing_name || 'おすすめ料理', 
-            type: (data.pairing_type as 'fish' | 'cheese' | 'meat' | 'other') || 'other' 
-          }],
-          officialUrl: data.official_url || `https://www.google.com/search?q=${encodeURIComponent(data.name)}`
-        };
-        setProduct(mapped);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      if (isMounted) setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    let isMounted = true;
-    void fetchSake(isMounted);
-    return () => { isMounted = false; };
-  }, [fetchSake]);
-
-  const toggleFavorite = async () => {
-    if (!user) return alert('ログインが必要です');
-    const sakeId = Number(id);
-    if (isFavorite) {
-      await favoriteRepository.remove(user.id, sakeId);
-      setIsFavorite(false);
-    } else {
-      await favoriteRepository.add(user.id, sakeId);
-      setIsFavorite(true);
-    }
-  };
-
-  if (loading) return <div className="page-container flex items-center justify-center text-gray-400 font-bold">物語を読み込み中...</div>;
-  if (!product) return <div className="page-container flex items-center justify-center text-gray-400">見つかりませんでした</div>;
+  // データが見つからない場合
+  if (!sake) {
+    return (
+      <div className="page-container flex items-center justify-center text-gray-400">
+        お探しの日本酒は見つかりませんでした
+      </div>
+    );
+  }
 
   return (
     <div className="page-container">
-      {/* main に bg-surface-card, rounded-sake を適用 */}
-      <main className="w-full max-w-6xl mx-auto bg-surface-card min-h-screen md:my-8 md:rounded-sake md:shadow-2xl pb-32 relative">
-        <header className="flex justify-between items-center p-6 sticky top-0 bg-surface-card/95 backdrop-blur-md z-20 border-b border-gray-100">
+      {/* bg-surface-card, rounded-sake を適用。
+          Vercelで bg-surface-base がエラーになる場合は tailwind.config.ts をルートに移動してください 
+      */}
+      <main className="w-full max-w-6xl mx-auto bg-surface-card min-h-screen md:my-8 md:rounded-sake md:shadow-2xl pb-32 relative overflow-hidden">
+        
+        {/* ヘッダー */}
+        <header className="flex justify-between items-center p-6 sticky top-0 bg-white/95 backdrop-blur-md z-20 border-b border-gray-100">
           <Link href="/list" className="p-2 hover:bg-surface-base rounded-full transition group">
             <ArrowLeft className="w-7 h-7 text-gray-600 group-hover:text-brand-accent" />
           </Link>
           <h1 className="font-brand font-bold text-xl text-brand-primary tracking-widest">SAKE STORY</h1>
-          <button onClick={toggleFavorite} className="p-2 hover:bg-surface-base rounded-full transition">
+          <button 
+            onClick={toggleFavorite} 
+            className="p-2 hover:bg-surface-base rounded-full transition"
+            aria-label="お気に入り登録"
+          >
             <Heart className={`w-7 h-7 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-800'}`} />
           </button>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 p-6 lg:p-12">
+          {/* 左カラム：画像 */}
           <div className="lg:col-span-5">
             <div className="aspect-square bg-surface-base rounded-sake overflow-hidden relative border border-gray-100 shadow-inner">
               <Image 
-                src={product.imageUrl} 
-                alt={product.name} 
+                src={sake.image_url || '/no-image.png'} 
+                alt={sake.name} 
                 fill 
-                className="object-cover mix-blend-multiply hover:scale-105 transition duration-700" 
+                className="object-cover mix-blend-multiply transition duration-700 hover:scale-105"
+                priority
               />
             </div>
           </div>
+
+          {/* 右カラム：詳細情報 */}
           <div className="lg:col-span-7 space-y-12">
-            <section className="space-y-6">
-              <h2 className="text-3xl lg:text-4xl font-black text-gray-900 font-brand tracking-tight">{product.name}</h2>
-              <div className="flex flex-wrap gap-3 text-sm font-bold text-gray-600">
-                <span className="bg-surface-card px-4 py-1.5 rounded-full border border-gray-200 shadow-sm">{product.tags.taste}</span>
-                <span className="bg-surface-card px-4 py-1.5 rounded-full border border-gray-200 shadow-sm">{product.tags.region}</span>
-                <span className="bg-brand-primary text-white px-4 py-1.5 rounded-full shadow-md">{product.tags.priceRange}</span>
+            <section>
+              <h2 className="text-3xl lg:text-4xl font-black text-gray-900 mb-6 font-brand tracking-tight">
+                {sake.name}
+              </h2>
+              <div className="flex flex-wrap gap-3">
+                <span className="bg-white px-4 py-1.5 rounded-full border border-gray-200 text-sm font-bold text-gray-600 shadow-sm">
+                  {sake.taste}
+                </span>
+                <span className="bg-white px-4 py-1.5 rounded-full border border-gray-200 text-sm font-bold text-gray-600 shadow-sm">
+                  {sake.prefecture}
+                </span>
+                <span className="bg-brand-primary text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-md">
+                  ¥{sake.price?.toLocaleString()}
+                </span>
               </div>
             </section>
             
-            <StorySection markdown={product.storyContent} />
-
-            <section className="w-full">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
-                <div className="bg-surface-card p-6 rounded-sake border border-gray-100 shadow-sm">
-                  <h4 className="font-bold text-brand-primary mb-5 text-center border-b border-brand-accent/10 pb-3 font-brand">おすすめの温度帯</h4>
-                  <div className="flex gap-3 justify-between">
-                    <DrinkStyleItem icon={<Snowflake className="w-8 h-8 text-blue-400" />} label="冷酒" level={product.recommendations.cold} />
-                    <DrinkStyleItem icon={<Thermometer className="w-8 h-8 text-green-600" />} label="常温" level={product.recommendations.room} />
-                    <DrinkStyleItem icon={<Flame className="w-8 h-8 text-red-500" />} label="熱燗" level={product.recommendations.hot} />
-                  </div>
+            {/* 物語セクション */}
+            <section className="relative bg-white border-4 border-brand-primary rounded-sake p-8 md:p-12 shadow-xl isolate">
+              <div className="absolute -right-10 -bottom-10 text-indigo-50 -z-10 rotate-12">
+                <BookOpen size={240} />
+              </div>
+              <div className="flex flex-col gap-5 mb-8">
+                <div className="self-start bg-brand-primary text-white text-xs font-bold px-5 py-2 rounded-full tracking-widest flex items-center gap-2">
+                  <BookOpen className="w-4 h-4" /> SAKE STORY
                 </div>
-                <div className="bg-surface-card p-6 rounded-sake border border-gray-100 shadow-sm flex flex-col justify-center items-center">
-                  <h4 className="font-bold text-brand-primary mb-5 text-center border-b border-brand-accent/10 pb-3 w-full font-brand">おすすめペアリング</h4>
-                  <Utensils className="w-12 h-12 mb-3 text-brand-accent opacity-80" />
-                  <span className="text-xl font-bold text-gray-800 mt-1">{product.pairings[0].name}</span>
-                </div>
+                <h3 className="font-serif font-bold text-2xl border-b-4 border-brand-accent/10 pb-5 font-brand">
+                  物語 - この一本が生まれるまで
+                </h3>
+              </div>
+              <div className="prose prose-slate max-w-none font-serif leading-relaxed text-gray-900">
+                <ReactMarkdown>{sake.description || 'このお酒にはまだ物語が登録されていません。'}</ReactMarkdown>
+              </div>
+              <div className="flex justify-end mt-4">
+                <Quote className="w-10 h-10 text-brand-accent/20 rotate-180" />
               </div>
             </section>
 
-            <ReviewSection sakeId={product.id} />
+            {/* おすすめの温度帯とペアリング */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-surface-card p-6 rounded-sake border border-gray-100 shadow-sm text-center">
+                <h4 className="font-bold text-brand-primary mb-5 border-b border-brand-accent/10 pb-3 font-brand">
+                  おすすめの温度帯
+                </h4>
+                <div className="flex gap-2">
+                  <DrinkStyleItem 
+                    type="cold" 
+                    label="冷酒" 
+                    level={(sake.rec_cold as RecommendationLevel) || 'circle'} 
+                  />
+                  <DrinkStyleItem 
+                    type="room" 
+                    label="常温" 
+                    level={(sake.rec_room as RecommendationLevel) || 'circle'} 
+                  />
+                  <DrinkStyleItem 
+                    type="hot" 
+                    label="熱燗" 
+                    level={(sake.rec_hot as RecommendationLevel) || 'circle'} 
+                  />
+                </div>
+              </div>
 
-            <div className="hidden lg:flex justify-center pt-6">
-              <Button onClick={() => window.open(product.officialUrl, '_blank')}>
+              <div className="bg-surface-card p-6 rounded-sake border border-gray-100 shadow-sm flex flex-col items-center justify-center text-center">
+                <h4 className="font-bold text-brand-primary mb-5 border-b border-brand-accent/10 pb-3 w-full font-brand">
+                  おすすめペアリング
+                </h4>
+                <Utensils className="w-10 h-10 mb-3 text-brand-accent opacity-80" />
+                <span className="text-xl font-bold text-gray-800">
+                  {sake.pairing_name || '和食全般'}
+                </span>
+              </div>
+            </div>
+
+            {/* アクションボタン */}
+            <div className="pt-6">
+              <Button onClick={() => window.open(sake.official_url || '', '_blank')}>
                 公式サイトへ移動
               </Button>
             </div>
@@ -368,4 +213,3 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     </div>
   );
 }
-

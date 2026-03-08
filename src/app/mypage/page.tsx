@@ -15,7 +15,7 @@ export default function MyPage() {
     handleLogout, handleDeleteReview, handleUpdateReview
   } = useMyPage();
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">読み込み中...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center font-bold text-gray-400">読み込み中...</div>;
 
   return (
     <div className="page-container md:py-6">
@@ -64,7 +64,7 @@ export default function MyPage() {
                   <p className="text-base font-medium">まだレビュー履歴はありません</p>
                 </div>
               ) : (
-                /* 修正：mapの閉じ括弧を修正 */
+                /* 修正ポイント：mapの閉じ括弧を確実に対応 */
                 reviews.map((r) => (
                   <ReviewCard 
                     key={r.id} review={r} 
@@ -95,7 +95,7 @@ export default function MyPage() {
               <h2 className="text-xl font-bold mb-6 text-brand-primary font-serif">レビューを編集</h2>
               <div className="flex gap-2 mb-8 justify-center">
                 {[1, 2, 3, 4, 5].map(n => (
-                  <button key={n} onClick={() => setEditRating(n)} className="transform transition hover:scale-110">
+                  <button key={n} onClick={() => setEditRating(n)} className="transform transition hover:scale-110" type="button">
                     <Star className={`w-10 h-10 ${n <= editRating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200'}`} />
                   </button>
                 ))}

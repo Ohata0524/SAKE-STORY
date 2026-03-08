@@ -1,20 +1,17 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* 1. Tailwindの基本エンジンをインポート */
+@import "tailwindcss";
 
+/* 2. ルートにある設定ファイルを「絶対パス」に近い形で強制リンク */
+@config "../../tailwind.config.ts";
+
+/* 3. カスタムクラスの定義 */
 @layer components {
-  /* ページ全体の共通背景を設定 */
   .page-container {
+    /* @config でリンクしたことで、カスタム色（surface-base）も標準クラス（pb-20）も認識されます */
     @apply min-h-screen bg-surface-base pb-20;
   }
 
-  /* セクションの共通レイアウト設定 */
   .section-container {
-    @apply w-full max-w-6xl mx-auto px-6 md:px-12 mt-8;
-  }
-
-  /* 見出しのスタイル共通化 */
-  .section-title {
-    @apply text-2xl font-bold text-gray-800 border-l-8 border-brand-accent pl-4 mb-6;
+    @apply w-full max-w-6xl mx-auto px-6;
   }
 }
