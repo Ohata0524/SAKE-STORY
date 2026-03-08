@@ -1,7 +1,5 @@
 # SAKE STORY - 日本酒にストーリーを添えて、あなたに合った一本と出会う -
 
-![alt text](docs/images/image.png)
-
 ## コンセプト
 **「スペックではなく、物語で選ぶ」**
 SAKE STORYは、日本酒の基本情報だけでなく、そのお酒が生まれた背景や蔵元の想い（ストーリー）を軸に、
@@ -39,16 +37,6 @@ git
 | **Email** | test2@example.com|
 | **Password** | 20251222 |
 
-## スクリーンショット
-
-| 年齢確認 | トップページ | マイページ |
-| :---: | :---: | :---: |
-| ![年齢確認](docs/images/image-6.png) | ![トップページ](docs/images/image-1.png) | ![マイページ](docs/images/image-7.png) |
-
-| 銘柄詳細 | ログイン | 新規登録 | 一覧 |
-| :---: | :---: | :---: | :---: |
-| ![銘柄詳細 ](docs/images/image-3.png) | ![ログイン](docs/images/image-4.png) | ![新規登録 ](docs/images/image-5.png) | ![一覧](docs/images/image-2.png) |
-
 ## 機能一覧 
 ### 実装済み機能
 * **認証機能**: ユーザー登録、ログイン、ログアウト
@@ -71,44 +59,61 @@ git
 * **多言語対応**
     * 昨今の日本酒の世界的なブームやインバウンド需要を見据え、英語等への切り替え機能を実装し、海外ユーザーへのアプローチを行う。
 
-### インフラ・技術スタックの刷新
-* **AWS版への移行とリリース**
-    * 現在は開発スピードを重視しSupabase（BaaS）を採用していますが、将来的なスケーラビリティの確保と、より細かいセキュリティ要件に対応するため、AWSへの移行を予定しています。
-    * **想定構成:** ECS  / Cognito / S3 等
 
 ### やらないこと
 * **EC機能（決済・在庫管理）**: 本アプリは「出会い」に特化するため、販売は既存のECサイトへ送客する形をとっています。
 
+## 技術的な取り組み
+1. 堅牢なデータバリデーション (Zod)
+Supabaseから取得する外部データに対し、Zodを用いたランタイムバリデーションを導入。ドメイン層の入り口で型安全性を保証し、予期せぬデータ不備によるランタイムエラーを未然に防いでいます。
+
+2. 関心の分離を意識したアーキテクチャ刷新
+UI、ドメインロジック、インフラストラクチャ（API連携）を明確に分離。
+Domain: ビジネスロジックとバリデーション定義
+Infrastructure: Supabase等の外部サービス依存の集約
+Hooks/Components: 表示とUIロジックの担当
+
+3. Atomic Designに基づくコンポーネント設計
+コンポーネントを atoms, molecules, organisms に分類。共通化可能なパーツを独立させることで、再利用性と保守性を高めています。また、ビジネスロジックはカスタムフックに抽出することで、UIとロジックを分離しました。
+
+4. 保守性を重視したCSS設計
+Tailwind CSS v4を採用し、独自のカラーパレットや共通変数を管理。命名規則を徹底し、デザインの一貫性とコードの可読性を両立させています。
+
+5. CI/CD基盤と品質管理 (GitHub Actions & Jest)
+「壊れない開発」を実現するため、GitHub Actionsを利用したCIパイプラインを構築。
+自動Lint/Buildチェック: PR作成時に構文エラーや未使用変数を自動検知。
+自動単体テスト (Jest): 重要なロジックに対し、PR時にテストを自動実行。すべてのテストをパスしなければマージできないフローを確立。
+
 ## 🛠 使用技術 (Technology)
 ### フロントエンド
-* **Framework:** Next.js 16.0 (App Router)
-* **Language:** TypeScript 5.x
-* **Library:** React 19.2
-* **Styling:** Tailwind CSS 4.x / tailwind-merge / clsx
-* **State:** React Hooks
+**Framework** Next.js 16.0 (App Router)
+**Language** TypeScript 5.x
+**Test** Jest / React Testing Library
+**Validation** Zod
+**Styling** Tailwind CSS 4.x / Lucide React
 
 ### バックエンド / インフラ
-* **BaaS:** Supabase (PostgreSQL, @supabase/supabase-js v2.87)
-* **Deploy:** Vercel
+* **BaaS** Supabase (PostgreSQL, Auth, Storage)
+* **CI/CD** GitHub Actions
+* **Deploy** Vercel
 
 ##  ディレクトリ構成
 
-```text
 SAKE-STORY/
-├── app/                      # App Router：メインロジック
-│   ├── lib/                  # 共通処理（supabaseClient.js 等）
-│   ├── list/                 # 銘柄一覧画面
-│   │   └── [id]/             # 銘柄詳細画面（動的ルーティング）
-│   ├── login/                # ログイン画面
-│   ├── mypage/               # マイページ画面
-│   └── signup/               # 新規登録画面
-├── docs/                     # ドキュメント資料
-│   └── images/               # README用スクリーンショット
-├── public/                   # 静的アセット（画像・アイコン）
-├── .env.local                # 環境変数（Git管理外）
-├── next.config.ts            # Next.js基本設定
-├── package.json              # 依存関係管理
-└── README.md                 # プロジェクト説明書
+├── src/
+│   ├── app/              # App Router（ルーティング・ページ定義）
+│   ├── components/       # Atomic Design（atoms, molecules, organisms）
+│   ├── domain/           # ドメイン層（Zodスキーマ、型定義、モデル）
+│   ├── infrastructure/   # インフラ層（リポジトリ、APIクライアント）
+│   ├── hooks/            # カスタムフック（ロジックの集約）
+│   └── lib/              # 共通ユーティリティ（画像処理、共通関数）
+├── .github/
+│   └── workflows/        # GitHub Actions（CI設定：Build, Lint, Test）
+├── docs/                 # ドキュメント
+├── public/               # 静的アセット
+├── jest.config.ts        # Jest設定
+├── next.config.ts        # Next.js設定
+└── package.json          # 依存関係
 
 
 ### 開発環境 (Requirements)
