@@ -1,5 +1,5 @@
 export interface Sake {
-  id: number;           // string から number に統一
+  id: number;           
   name: string;
   brewery: string;
   prefecture: string | null;

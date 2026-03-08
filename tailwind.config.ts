@@ -8,7 +8,7 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          primary: '#1e1b4b', // スペースを除去
+          primary: '#1e1b4b', 
           accent: '#6366f1',
           highlight: '#4f46e5',
         },

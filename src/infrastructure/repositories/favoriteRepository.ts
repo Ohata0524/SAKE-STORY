@@ -19,7 +19,6 @@ export const favoriteRepository = {
     return await supabase.from('favorites').delete().eq('user_id', userId).eq('sake_id', sakeId);
   },
 
-  // 修正ポイント：閉じ括弧（}）の前にメソッドを移動し、直前のメソッドとカンマ（,）で繋ぐ
   async findByUserId(userId: string) {
     const { data, error } = await supabase
       .from('favorites')

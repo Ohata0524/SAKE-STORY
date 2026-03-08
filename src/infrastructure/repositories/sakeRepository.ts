@@ -9,7 +9,6 @@ export const sakeRepository = {
     return data as Sake[];
   },
 
-  // 修正ポイント：findById をオブジェクトの内部に配置
   async findById(id: number): Promise<Sake | null> {
     const { data, error } = await supabase
       .from('sakes')

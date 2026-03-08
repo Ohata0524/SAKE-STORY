@@ -1,7 +1,6 @@
 import nextJest from 'next/jest.js'
 
 const createJestConfig = nextJest({
-  // テスト環境で Next.js のアプリを読み込むためのパス
   dir: './',
 })
 

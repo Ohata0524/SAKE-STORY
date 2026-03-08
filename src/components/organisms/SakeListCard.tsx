@@ -1,29 +1,38 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Sake } from '@/domain/models/sake';
+import { getDisplayImageUrl } from '@/app/lib/imageUtils';
 
-export const SakeListCard = ({ sake, sortOrder }: { sake: Sake, sortOrder: string }) => (
-  <Link href={`/list/${sake.id}`} className="bg-white rounded-3xl overflow-hidden shadow-sm hover:shadow-lg transition group border border-gray-100 flex flex-col">
-    <div className="aspect-[4/5] bg-gray-100 relative flex items-center justify-center overflow-hidden">
-      {sake.image_url ? (
-        <Image src={sake.image_url} alt={sake.name} fill className="object-cover mix-blend-multiply group-hover:scale-105 transition duration-500" />
-      ) : (
-        <span className="text-gray-300 font-bold text-lg">No Image</span>
-      )}
-      <div className="absolute top-3 right-3 flex flex-col gap-2 items-end">
-        {sake.taste && (
-          <span className="bg-white/95 backdrop-blur text-xs px-3 py-1 rounded-lg shadow-sm text-gray-700 font-bold">{sake.taste}</span>
-        )}
-        <span className="bg-indigo-900/95 backdrop-blur text-sm px-3 py-1.5 rounded-lg shadow-sm text-white font-bold">
-          ¥{sake.price?.toLocaleString()}
-        </span>
+export const SakeListCard = ({ sake }: { sake: Sake; sortOrder?: string }) => {
+  const displayImageUrl = getDisplayImageUrl(sake.image_url, sake.name);
+
+  return (
+    <Link href={`/list/${sake.id}`} className="group block">
+      <div className="relative w-full aspect-[4/5] bg-gray-200 rounded-2xl mb-4 overflow-hidden shadow-md group-hover:shadow-xl transition-all duration-300 transform group-hover:-translate-y-1">
+        <Image 
+          src={displayImageUrl} 
+          alt={sake.name} 
+          fill 
+          className="object-cover"
+          unoptimized 
+        />
+        
+        {/* バッジ（味・価格）：image_9ce185.png のデザインを再現 */}
+        <div className="absolute top-3 right-3 flex flex-col items-end gap-2">
+          <span className="bg-white/90 backdrop-blur-sm text-gray-800 text-[10px] font-black px-2 py-0.5 rounded-md shadow-sm border border-gray-100">
+            {sake.taste}
+          </span>
+          <span className="bg-indigo-700/90 text-white text-[10px] font-black px-2 py-0.5 rounded-md shadow-sm">
+            ¥{sake.price?.toLocaleString()}
+          </span>
+        </div>
+
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition"></div>
       </div>
-    </div>
-    <div className="p-5 flex-1 flex flex-col justify-end">
-      <p className={`text-xs mb-2 font-bold leading-tight ${sortOrder === 'prefecture' ? 'text-indigo-600' : 'text-gray-600'}`}>
-        {sake.brewery} / {sake.prefecture}
-      </p>
-      <h3 className="font-bold text-gray-900 text-sm leading-tight line-clamp-2 group-hover:text-indigo-700 transition">{sake.name}</h3>
-    </div>
-  </Link>
-);
+      <h4 className="font-bold text-gray-900 text-lg mb-1 truncate group-hover:text-indigo-700 transition">
+        {sake.name}
+      </h4>
+      <p className="text-sm text-gray-600 font-bold">{sake.brewery} / {sake.prefecture}</p>
+    </Link>
+  );
+};

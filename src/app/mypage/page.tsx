@@ -64,7 +64,6 @@ export default function MyPage() {
                   <p className="text-base font-medium">まだレビュー履歴はありません</p>
                 </div>
               ) : (
-                /* 修正ポイント：mapの閉じ括弧を確実に対応 */
                 reviews.map((r) => (
                   <ReviewCard 
                     key={r.id} review={r} 

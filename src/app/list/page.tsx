@@ -34,7 +34,6 @@ function ListContent() {
   };
 
   return (
-    /* 修正：page-container クラスを適用 */
     <div className="page-container">
       {/* ヘッダー：bg-surface-card を適用 */}
       <header className="bg-surface-card sticky top-0 z-10 border-b border-gray-100 p-6">
@@ -54,7 +53,6 @@ function ListContent() {
         </div>
       </header>
 
-      {/* 修正：section-container クラスを適用 */}
       <main className="section-container py-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-10">
           <div>
@@ -94,7 +92,6 @@ function ListContent() {
         ) : sakes.length === 0 ? (
           <div className="text-center py-32">
             <p className="text-gray-400 mb-6 font-medium">条件に合う日本酒が見つかりませんでした。</p>
-            {/* 修正：text-brand-accent を適用 */}
             <Link href="/list" className="text-brand-accent hover:text-brand-highlight underline font-bold transition">条件をクリアして全件表示</Link>
           </div>
         ) : (
