@@ -15,7 +15,7 @@ export default function MyPage() {
     handleLogout, handleDeleteReview, handleUpdateReview
   } = useMyPage();
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center">読み込み中...</div>;
+  if (loading) return <div className="page-container flex items-center justify-center font-bold text-gray-400">読み込み中...</div>;
 
   return (
     <div className="page-container md:py-6">
@@ -68,7 +68,6 @@ export default function MyPage() {
                   <p className="text-base font-medium">まだレビュー履歴はありません</p>
                 </div>
               ) : (
-                /* 構文修正：mapの閉じ括弧を確実に対応させた */
                 reviews.map((r) => (
                   <ReviewCard 
                     key={r.id} review={r} 
