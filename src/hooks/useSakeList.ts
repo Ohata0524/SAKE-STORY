@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { sakeRepository } from '@/infrastructure/repositories/sakeRepository';
 import { sakeListSchema } from '@/domain/schemas/schemas';
 import { Sake } from '@/domain/models/sake';
@@ -16,7 +16,6 @@ const PREF_ORDER = [
 
 export const useSakeList = () => {
   const searchParams = useSearchParams();
-  const router = useRouter();
   
   const [sakes, setSakes] = useState<Sake[]>([]);
   const [loading, setLoading] = useState(true);

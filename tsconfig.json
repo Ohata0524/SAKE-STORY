@@ -20,7 +20,9 @@
     ],
     "paths": {
       "@/*": ["./src/*"]
-    }
+    },
+    /* 追加：JestとTesting Libraryの型を定義 */
+    "types": ["jest", "node", "@testing-library/jest-dom"]
   },
   "include": [
     "next-env.d.ts",
@@ -28,8 +30,8 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts"
+    "**/*.mts",
+    "jest.setup.js" /* 追加：セットアップファイルを含める */
   ],
   "exclude": ["node_modules"]
 }
-
