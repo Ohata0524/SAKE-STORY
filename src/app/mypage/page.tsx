@@ -64,7 +64,7 @@ export default function MyPage() {
                   <p className="text-base font-medium">まだレビュー履歴はありません</p>
                 </div>
               ) : (
-                /* 修正ポイント：mapの閉じ括弧を修正しました */
+                /* 修正ポイント：mapの閉じ括弧を確実に対応 */
                 reviews.map((r) => (
                   <ReviewCard 
                     key={r.id} review={r} 
@@ -95,12 +95,17 @@ export default function MyPage() {
               <h2 className="text-xl font-bold mb-6 text-brand-primary font-serif">レビューを編集</h2>
               <div className="flex gap-2 mb-8 justify-center">
                 {[1, 2, 3, 4, 5].map(n => (
-                  <button key={n} type="button" onClick={() => setEditRating(n)} className="transform transition hover:scale-110">
+                  <button key={n} onClick={() => setEditRating(n)} className="transform transition hover:scale-110" type="button">
                     <Star className={`w-10 h-10 ${n <= editRating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200'}`} />
                   </button>
                 ))}
               </div>
-              <textarea value={editComment} onChange={e => setEditComment(e.target.value)} className="w-full border border-gray-200 rounded-xl p-4 h-32 mb-8 focus:ring-2 focus:ring-brand-accent focus:outline-none transition" placeholder="感想を入力してください..." />
+              <textarea 
+                value={editComment} 
+                onChange={e => setEditComment(e.target.value)} 
+                className="w-full border border-gray-200 rounded-xl p-4 h-32 mb-8 focus:ring-2 focus:ring-brand-accent focus:outline-none transition" 
+                placeholder="感想を入力してください..."
+              />
               <div className="flex gap-4">
                 <Button variant="outline" onClick={() => setEditingReview(null)}>キャンセル</Button>
                 <Button onClick={handleUpdateReview}>更新する</Button>

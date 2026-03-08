@@ -2,7 +2,7 @@ import type { Config } from "tailwindcss";
 
 const config: Config = {
   content: [
-    "./src/**/*.{js,ts,jsx,tsx,mdx}", // src配下の全ファイルを対象にする
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
@@ -12,9 +12,8 @@ const config: Config = {
           accent: '#6366f1',
           highlight: '#4f46e5',
         },
-        // この surface 定義が漏れていたためビルドエラーになっていました
         surface: {
-          base: '#f9fafb',
+          base: '#f9fafb', 
           card: '#ffffff',
           dark: '#0f172a',
         }

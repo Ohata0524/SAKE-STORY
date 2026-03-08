@@ -11,7 +11,7 @@ import { Button } from '@/components/atoms/Button';
 // 修正：anyを排除するための型定義
 type RecommendationLevel = 'double_circle' | 'circle' | 'triangle';
 
-// 修正：typeを受け取り内部でアイコンを表示する形式に変更
+// 修正：typeを受け取り内部でアイコンを出すよう定義を変更
 const DrinkStyleItem = ({ 
   type, 
   label, 
@@ -42,14 +42,14 @@ const DrinkStyleItem = ({
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { sake, loading, isFavorite, toggleFavorite } = useProductDetail(params);
 
-  if (loading) return <div className="page-container flex items-center justify-center font-bold text-gray-400">物語を読み込み中...</div>;
+  if (loading) return <div className="page-container flex items-center justify-center font-bold text-gray-400">読み込み中...</div>;
   if (!sake) return <div className="page-container flex items-center justify-center text-gray-400">見つかりませんでした</div>;
 
   return (
     <div className="page-container">
       <main className="w-full max-w-6xl mx-auto bg-surface-card min-h-screen md:my-8 md:rounded-sake md:shadow-2xl pb-32 relative overflow-hidden">
-        <header className="flex justify-between items-center p-6 sticky top-0 bg-white/95 backdrop-blur-md z-20 border-b border-gray-100">
-          <Link href="/list" className="p-2 hover:bg-gray-100 rounded-full transition group">
+        <header className="flex justify-between items-center p-6 sticky top-0 bg-surface-card/95 backdrop-blur-md z-20 border-b border-gray-100">
+          <Link href="/list" className="p-2 hover:bg-surface-base rounded-full transition group">
             <ArrowLeft className="w-7 h-7 text-gray-600 group-hover:text-brand-accent" />
           </Link>
           <h1 className="font-brand font-bold text-xl text-brand-primary tracking-widest">SAKE STORY</h1>
@@ -69,14 +69,14 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
             <section>
               <h2 className="text-3xl lg:text-4xl font-black text-gray-900 mb-6 font-brand">{sake.name}</h2>
               <div className="flex flex-wrap gap-3">
-                <span className="bg-white px-4 py-1.5 rounded-full border border-gray-200 text-sm font-bold text-gray-600 shadow-sm">{sake.taste}</span>
-                <span className="bg-white px-4 py-1.5 rounded-full border border-gray-200 text-sm font-bold text-gray-600 shadow-sm">{sake.prefecture}</span>
+                <span className="bg-surface-card px-4 py-1.5 rounded-full border border-gray-200 text-sm font-bold text-gray-600 shadow-sm">{sake.taste}</span>
+                <span className="bg-surface-card px-4 py-1.5 rounded-full border border-gray-200 shadow-sm">{sake.prefecture}</span>
                 <span className="bg-brand-primary text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-md">¥{sake.price?.toLocaleString()}</span>
               </div>
             </section>
             
-            <section className="relative bg-white border-4 border-brand-primary rounded-sake p-8 md:p-12 shadow-xl isolate">
-              <div className="absolute -right-10 -bottom-10 text-indigo-50 -z-10 rotate-12"><BookOpen size={240} /></div>
+            <section className="relative bg-surface-card border-4 border-brand-primary rounded-sake p-8 md:p-12 shadow-xl isolate">
+              <div className="absolute -right-10 -bottom-10 text-indigo-50 opacity-60 -z-10 rotate-12"><BookOpen size={240} /></div>
               <div className="flex flex-col gap-5 mb-8">
                 <div className="self-start bg-brand-primary text-white text-xs font-bold px-5 py-2 rounded-full tracking-widest flex items-center gap-2"><BookOpen className="w-4 h-4" /> SAKE STORY</div>
                 <h3 className="font-serif font-bold text-2xl border-b-4 border-brand-accent/10 pb-5 font-brand">物語 - この一本が生まれるまで</h3>
@@ -89,7 +89,6 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               <div className="bg-surface-card p-6 rounded-sake border border-gray-100 shadow-sm text-center">
                 <h4 className="font-bold text-brand-primary mb-5 border-b border-brand-accent/10 pb-3 font-brand">おすすめの温度帯</h4>
                 <div className="flex gap-2">
-                  {/* 修正：typeを渡し、as any を排除 */}
                   <DrinkStyleItem type="cold" label="冷酒" level={(sake.rec_cold as RecommendationLevel) || 'circle'} />
                   <DrinkStyleItem type="room" label="常温" level={(sake.rec_room as RecommendationLevel) || 'circle'} />
                   <DrinkStyleItem type="hot" label="熱燗" level={(sake.rec_hot as RecommendationLevel) || 'circle'} />
