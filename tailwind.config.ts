@@ -13,7 +13,7 @@ const config: Config = {
           highlight: '#4f46e5',
         },
         surface: {
-          base: '#f9fafb', 
+          base: '#f9fafb',
           card: '#ffffff',
           dark: '#0f172a',
         }
