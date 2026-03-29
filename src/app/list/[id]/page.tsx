@@ -8,10 +8,12 @@ import {
   ArrowLeft, Heart, BookOpen, Utensils, Quote, 
   Snowflake, Thermometer, Flame 
 } from 'lucide-react';
+/* 修正：正しい名前でインポートされていることを確認 */
 import { useProductDetail } from '@/hooks/useProductDetail';
 import { Button } from '@/components/atoms/Button';
 import { getDisplayImageUrl } from '@/app/lib/imageUtils';
 
+// --- 型定義 ---
 type RecommendationLevel = 'double_circle' | 'circle' | 'triangle';
 
 interface DrinkStyleItemProps {
@@ -20,6 +22,7 @@ interface DrinkStyleItemProps {
   level: RecommendationLevel;
 }
 
+// --- サブコンポーネント ---
 
 const LevelIcon = ({ level }: { level: RecommendationLevel }) => {
   switch (level) {
@@ -55,6 +58,8 @@ const DrinkStyleItem = ({ type, label, level }: DrinkStyleItemProps) => {
   );
 };
 
+// --- メインコンポーネント ---
+
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { sake, loading, isFavorite, toggleFavorite } = useProductDetail(params);
 
@@ -76,7 +81,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     );
   }
 
-
+  /* 銘柄固有カラー付き画像URLを取得 */
   const displayImageUrl = getDisplayImageUrl(sake.image_url, sake.name);
 
   return (

@@ -17,8 +17,14 @@ const FILTERS = [
 
 export default function Home() {
   const { 
-    sakes, keyword, setKeyword, showAgeModal, 
-    handleSearch, handleFilterClick, handleAgeVerify 
+    sakes = [], 
+    loading,
+    keyword, 
+    setKeyword, 
+    showAgeModal, 
+    handleSearch, 
+    handleFilterClick, 
+    handleAgeVerify 
   } = useHome();
 
   return (
@@ -29,9 +35,7 @@ export default function Home() {
           <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
           <div className="relative bg-surface-dark w-full max-w-sm p-8 rounded-sake shadow-2xl text-center border border-slate-700">
             <h2 className="text-xl font-bold text-white mb-2 font-serif">SAKE STORY</h2>
-            <p className="text-lg font-bold text-white mb-8 leading-relaxed">
-              20歳以上ですか？
-            </p>
+            <p className="text-lg font-bold text-white mb-8 leading-relaxed">20歳以上ですか？</p>
             <div className="flex flex-col gap-3">
               <Button onClick={handleAgeVerify}>はい（入店する）</Button>
               <Button variant="ghost" onClick={() => alert("20歳未満は閲覧できません")}>いいえ</Button>
@@ -61,7 +65,7 @@ export default function Home() {
           </form>
         </section>
 
-        {/* テーマ別 */}
+        {/* テーマで探す */}
         <section className="mt-16">
           <h3 className="section-title">テーマで探す</h3>
           <div className="flex flex-wrap gap-4">
@@ -76,12 +80,15 @@ export default function Home() {
         {/* おすすめグリッド */}
         <section className="mt-16">
           <h3 className="section-title">今月のおすすめ</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {sakes.map((sake) => <SakeCard key={sake.id} sake={sake} />)}
-          </div>
+          {loading ? (
+            <div className="text-center py-20 text-gray-400 font-bold">物語を読み込み中...</div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+              {sakes.map((sake) => <SakeCard key={sake.id} sake={sake} />)}
+            </div>
+          )}
         </section>
 
-        {/* 一覧への導線 */}
         <section className="mt-20">
           <Link href="/list" className="group block w-full bg-white border-4 border-dashed border-indigo-100 rounded-sake p-12 text-center hover:border-brand-accent hover:bg-indigo-50 transition">
             <h3 className="text-2xl font-bold text-brand-primary mb-6">あなただけの一本を見つける</h3>

@@ -35,13 +35,11 @@ function ListContent() {
 
   return (
     <div className="page-container">
-      {/* ヘッダー：bg-surface-card を適用 */}
       <header className="bg-surface-card sticky top-0 z-10 border-b border-gray-100 p-6">
         <div className="w-full max-w-6xl mx-auto flex items-center gap-6">
           <Link href="/" className="p-3 -ml-3 hover:bg-surface-base rounded-full transition group">
             <ArrowLeft className="w-8 h-8 text-gray-600 group-hover:text-brand-accent transition" />
           </Link>
-          {/* 検索バー：bg-surface-base を適用 */}
           <form onSubmit={handleSearch} className="flex-1 flex items-center bg-surface-base rounded-full px-6 py-3 border border-transparent focus-within:border-brand-accent transition-all">
             <Search className="w-5 h-5 text-gray-400 mr-3" />
             <input 
@@ -97,7 +95,7 @@ function ListContent() {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 md:gap-8">
             {sakes.map((sake) => (
-              <SakeListCard key={sake.id} sake={sake} sortOrder={sortOrder} />
+              <SakeListCard key={sake.id} sake={sake} />
             ))}
           </div>
         )}

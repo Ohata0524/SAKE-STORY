@@ -1,85 +1,75 @@
-'use client';
-
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { sakeRepository } from '@/infrastructure/repositories/sakeRepository';
-import { sakeListSchema } from '@/domain/schemas/schemas';
+import { SakeRepository } from '@/infrastructure/repositories/sakeRepository';
 import { Sake } from '@/domain/models/sake';
 
 export const useHome = () => {
   const router = useRouter();
-  const [showAgeModal, setShowAgeModal] = useState(false);
   const [sakes, setSakes] = useState<Sake[]>([]);
+  const [loading, setLoading] = useState(true);
   const [keyword, setKeyword] = useState('');
+  const [showAgeModal, setShowAgeModal] = useState(false);
 
-  const fetchRecommendations = useCallback(async (isMounted: boolean) => {
+  useEffect(() => {
+    const isVerified = localStorage.getItem('age-verified');
+    if (!isVerified) setShowAgeModal(true);
+  }, []);
+
+  const fetchRecommended = useCallback(async () => {
+    setLoading(true);
     try {
-      const data = await sakeRepository.findAll();
-      if (!isMounted) return;
-
-      const result = sakeListSchema.safeParse(data);
-      if (result.success) {
-        setSakes(result.data.slice(0, 8) as unknown as Sake[]);
-      }
+      const data = await SakeRepository.fetchSakes({ limit: 8 });
+      setSakes(data || []);
     } catch (error) {
-      console.error('おすすめ取得失敗:', error);
+      console.error('データ取得失敗:', error);
+      setSakes([]);
+    } finally {
+      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    let isMounted = true;
+    fetchRecommended();
+  }, [fetchRecommended]);
 
-    const initialize = async () => {
-      // 1. 年齢確認のチェック
-      const isVerified = localStorage.getItem('ageVerified');
-      
-      // 非同期の初期化フローに入れることで警告を回避
-      if (!isVerified && isMounted) {
-        setShowAgeModal(true);
-      }
-
-      // 2. データのフェッチ
-      await fetchRecommendations(isMounted);
-    };
-
-    void initialize();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [fetchRecommendations]);
-
+  // 検索バーからの遷移
   const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault(); 
+    e.preventDefault();
     if (keyword.trim()) {
       router.push(`/list?q=${encodeURIComponent(keyword)}`);
     }
   };
 
+  /**
+   * 修正ポイント：handleFilterClick
+   * カテゴリーボタンをクリックした際に、正しいURLへジャンプさせます
+   */
   const handleFilterClick = (label: string) => {
-    if (label === '甘口' || label === '辛口') {
-      router.push(`/list?taste=${encodeURIComponent(label)}`);
-    } else {
-      let searchWord = label;
-      if (label === '初心者おすすめ') searchWord = '初心者';
-      if (label === 'ギフト用') searchWord = 'ギフト';
-      if (label === '自分用') searchWord = '晩酌';
-      router.push(`/list?q=${encodeURIComponent(searchWord)}`);
-    }
+    const paths: Record<string, string> = {
+      "初心者おすすめ": "/list?q=初心者",
+      "甘口": "/list?taste=甘口",
+      "辛口": "/list?taste=辛口",
+      "ギフト用": "/list?q=ギフト",
+      "自分用": "/list?q=晩酌"
+    };
+    const targetPath = paths[label] || '/list';
+    console.log("Navigating to:", targetPath); // デバッグ用
+    router.push(targetPath);
   };
 
   const handleAgeVerify = () => {
-    localStorage.setItem('ageVerified', 'true');
+    localStorage.setItem('age-verified', 'true');
     setShowAgeModal(false);
   };
 
   return {
     sakes,
+    loading,
     keyword,
     setKeyword,
     showAgeModal,
     handleSearch,
-    handleFilterClick,
-    handleAgeVerify,
+    handleFilterClick, // これが返されていないと page.tsx でエラーになります
+    handleAgeVerify
   };
 };
