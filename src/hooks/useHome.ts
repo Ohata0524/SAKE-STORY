@@ -18,7 +18,7 @@ export const useHome = () => {
   const fetchRecommended = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await SakeRepository.fetchSakes({ limit: 8 });
+      const data = await SakeRepository.fetchRandom(8);
       setSakes(data || []);
     } catch (error) {
       console.error('データ取得失敗:', error);
@@ -41,7 +41,6 @@ export const useHome = () => {
   };
 
   /**
-   * 修正ポイント：handleFilterClick
    * カテゴリーボタンをクリックした際に、正しいURLへジャンプさせます
    */
   const handleFilterClick = (label: string) => {
@@ -69,7 +68,7 @@ export const useHome = () => {
     setKeyword,
     showAgeModal,
     handleSearch,
-    handleFilterClick, // これが返されていないと page.tsx でエラーになります
+    handleFilterClick,
     handleAgeVerify
   };
 };

@@ -1,10 +1,11 @@
-import { supabase } from '../supabase/supabaseClient'; // 相対パス
+import { supabase } from '../supabase/supabaseClient';
 import { Sake } from '@/domain/models/sake';
 
 export const SakeRepository = {
   async fetchSakes(filters: { keyword?: string; taste?: string; limit?: number }) {
     let query = supabase.from('sakes').select('*');
 
+    
     if (filters.keyword) {
       const k = `%${filters.keyword}%`;
       query = query.or(`name.ilike.${k},brewery.ilike.${k},description.ilike.${k},prefecture.ilike.${k}`);
@@ -19,7 +20,23 @@ export const SakeRepository = {
     }
 
     const { data, error } = await query;
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase取得エラー:', error);
+      throw error;
+    }
+    return data as Sake[];
+  },
+
+  async fetchRandom(limitCount: number = 8) {
+    const { data, error } = await supabase.rpc('get_random_sakes', {
+      limit_count: limitCount
+    });
+
+    if (error) {
+      console.error('ランダム取得エラー:', error);
+      throw error;
+    }
+    
     return data as Sake[];
   }
 };
